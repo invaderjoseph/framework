@@ -33,10 +33,6 @@
         "phpunit/phpunit": "^9.1"
     },
     "autoload": {
-        "files": [
-            "src/Emberfuse/Foundation/helpers.php",
-            "src/Emberfuse/Support/helpers.php"
-        ],
         "psr-4": {
             "Emberfuse\\": "src/Emberfuse/"
         }
