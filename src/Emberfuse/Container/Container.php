@@ -204,7 +204,7 @@ final class Container implements ContainerInterface
     private function build($concrete, array $parameters = [])
     {
         if ($concrete instanceof Closure) {
-            return call_user_func_array($concrete, [$this, ...$parameters]);
+            return call_user_func_array($concrete, array_merge([$this], $parameters));
         }
 
         try {
