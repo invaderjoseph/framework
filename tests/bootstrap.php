@@ -3,7 +3,7 @@
 /**
  * Register The Composer Auto Loader
  */
-require dirname(__DIR__ . '/vendor/autoload.php');
+require __DIR__ . '/../vendor/autoload.php';
 
 /*
  * Set The Default Timezone
