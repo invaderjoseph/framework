@@ -1,8 +1,9 @@
 <?php
 
 /**
- * Register The Composer Auto Loader
+ * Load Composer Autoload.
  */
+<<<<<<< HEAD
 require __DIR__ . '/../vendor/autoload.php';
 
 /*
@@ -11,3 +12,6 @@ require __DIR__ . '/../vendor/autoload.php';
 date_default_timezone_set('UTC');
 
 setlocale(LC_ALL, 'C.UTF-8');
+=======
+require dirname(__DIR__) . '/vendor/autoload.php';
+>>>>>>> master

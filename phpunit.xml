@@ -13,14 +13,13 @@
          verbose="true"
 >
     <testsuites>
-        <testsuite name="Emberfuse Test Suite">
+        <testsuite name="Base Test Suite">
             <directory suffix="Test.php">./tests</directory>
         </testsuite>
     </testsuites>
-    <php>
-        <!--
-        <env name="REDIS_HOST" value="127.0.0.1"/>
-        <env name="REDIS_PORT" value="6379"/>
-        -->
-    </php>
+    <filter>
+        <whitelist processUncoveredFilesFromWhitelist="true">
+            <directory suffix=".php">./src</directory>
+        </whitelist>
+    </filter>
 </phpunit>
