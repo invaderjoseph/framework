@@ -1,8 +1,8 @@
 {
-    "name": "thavarshan/base",
+    "name": "emberfuse/framework",
     "type": "project",
-    "description": "A PHP package template.",
-    "keywords": ["php", "composer", "package"],
+    "description": "A simple PHP micro framework.",
+    "keywords": ["php", "micro", "framework"],
     "authors": [
         {
             "name": "Thavarshan Thayananthajothy",
@@ -18,19 +18,20 @@
         "php": "^7.3"
     },
     "require-dev": {
-        "mockery/mockery": "^1.3.1",
-        "phpunit/phpunit": "^9.1",
         "friendsofphp/php-cs-fixer": "^2.16.3",
+        "mockery/mockery": "^1.3.1",
+        "phpstan/phpstan": "^0.12.32",
+        "phpunit/phpunit": "^9.1",
         "symfony/var-dumper": "^5.1.2"
     },
     "autoload": {
         "psr-4": {
-            "Base\\": "src/Base"
+            "Emberfuse\\": "src/Emberfuse"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Base\\Tests\\": "tests/"
+            "Emberfuse\\Tests\\": "tests/"
         }
     },
     "minimum-stability": "dev",
