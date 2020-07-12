@@ -1,23 +1,40 @@
-# The Emberfuse Framework
+<p align="center">
+    <img src="https://raw.githubusercontent.com/thavarshan/base/master/docs/img/example.png" height="300" alt="Skeleton Php">
+    <p align="center">
+        <a href="https://github.com/thavarshan/base/actions"><img alt="GitHub Workflow Status (master)" src="https://img.shields.io/github/workflow/status/thavarshan/base/Tests/master"></a>
+        <a href="https://packagist.org/packages/thavarshan/base"><img alt="Total Downloads" src="https://img.shields.io/packagist/dt/thavarshan/base">
+        </a>
+        <a href="https://packagist.org/packages/thavarshan/base"><img alt="Latest Version" src="https://img.shields.io/packagist/v/thavarshan/base">
+        </a>
+        <a href="https://packagist.org/packages/thavarshan/base"><img alt="License" src="https://img.shields.io/packagist/l/thavarshan/base">
+        </a>
+    </p>
+</p>
 
-A simple PHP framework
+Base is a basic skeleton of a typical PHP composer package. It comes in handy when you need to quickly develop a PHP package.
 
-## About Emberfuse
+> **Requires [PHP 7.3.0+](https://php.net/releases/)**
 
-<!-- TODO -->
+✨ Create the package using [Composer](https://getcomposer.org):
 
-## Contributing
+```bash
+composer create-project thavarshan/base --prefer-source PackageName
+```
 
-Thank you for considering contributing to the Emberfuse framework! The contribution guide can be found in the [Emberfuse documentation](https://emberfuse.com/docs/contributions).
+🧹 Keep a modern codebase with **PHP CS Fixer**:
+```bash
+composer lint
+```
 
-## Code of Conduct
+✅ Run unit tests using **PHPUnit**:
+```bash
+composer test:unit
+```
 
-In order to ensure that the Emberfuse community is welcoming to all, please review and abide by the [Code of Conduct](https://emberfuse.com/docs/contributions#code-of-conduct).
+🚀 Run the entire test suite:
+```bash
+composer test
+```
 
-## Security Vulnerabilities
+**Base** was created by **[Thavarshan Thayananthajothy](https://twitter.com/thavarshan)** under the **[MIT license](https://opensource.org/licenses/MIT)**.
 
-Please review [our security policy](https://github.com/emberfuse/framework/security/policy) on how to report security vulnerabilities.
-
-## License
-
-The Emberfuse framework is open-sourced software licensed under the [MIT license](LICENSE.md).
