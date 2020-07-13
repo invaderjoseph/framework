@@ -5,11 +5,16 @@ namespace Emberfuse\Tests\Container;
 use stdClass;
 use PHPUnit\Framework\TestCase;
 use Emberfuse\Container\Container;
+use Psr\Container\ContainerExceptionInterface;
+use Emberfuse\Container\Exceptions\BindingNotFound;
+use Emberfuse\Container\Exceptions\BindingResolution;
 use Emberfuse\Tests\Container\Stubs\ContainerConcreteStub;
 use Emberfuse\Tests\Container\Stubs\ContainerDependentStub;
 use Emberfuse\Tests\Container\Stubs\IContainerContractStub;
+use Emberfuse\Tests\Container\Stubs\ContainerDefaultValueStub;
 use Emberfuse\Tests\Container\Stubs\ContainerImplementationStub;
 use Emberfuse\Tests\Container\Stubs\ContainerNestedDependentStub;
+use Emberfuse\Tests\Container\Stubs\ContainerInjectVariableStubWithInterfaceImplementation;
 
 class ContainerTest extends TestCase
 {
@@ -49,7 +54,7 @@ class ContainerTest extends TestCase
             return new stdClass();
         });
 
-        $firstInstantiation  = $container->make('class');
+        $firstInstantiation = $container->make('class');
         $secondInstantiation = $container->make('class');
 
         $this->assertSame($firstInstantiation, $secondInstantiation);
@@ -96,5 +101,256 @@ class ContainerTest extends TestCase
         });
         $c = $container->make('something');
         $this->assertSame($c, $container);
+    }
+
+    public function testArrayAccess()
+    {
+        $container = new Container();
+        $container['something'] = function () {
+            return 'foo';
+        };
+        $this->assertTrue(isset($container['something']));
+        $this->assertSame('foo', $container['something']);
+        unset($container['something']);
+        $this->assertFalse(isset($container['something']));
+    }
+
+    public function testBindingsCanBeOverridden()
+    {
+        $container = new Container();
+        $container['foo'] = 'bar';
+        $container['foo'] = 'baz';
+
+        $this->assertSame('baz', $container['foo']);
+    }
+
+    public function testBindingAnInstanceReturnsTheInstance()
+    {
+        $container = new Container();
+
+        $bound = new stdClass();
+        $resolved = $container->instance('foo', $bound);
+
+        $this->assertSame($bound, $resolved);
+    }
+
+    public function testBindingAnInstanceAsShared()
+    {
+        $container = new Container();
+        $bound = new stdClass();
+        $container->instance('foo', $bound);
+        $object = $container->make('foo');
+        $this->assertSame($bound, $object);
+    }
+
+    public function testResolutionOfDefaultParameters()
+    {
+        $container = new Container();
+        $instance = $container->make(ContainerDefaultValueStub::class);
+        $this->assertInstanceOf(ContainerConcreteStub::class, $instance->stub);
+        $this->assertSame('foobar', $instance->default);
+    }
+
+    public function testUnsetRemoveBoundInstances()
+    {
+        $container = new Container();
+        $container->instance('object', new stdClass());
+        unset($container['object']);
+
+        $this->assertFalse($container->has('object'));
+    }
+
+    public function testInternalClassWithDefaultParameters()
+    {
+        $this->expectException(BindingResolution::class);
+
+        $container = new Container();
+        $container->make(ContainerMixedPrimitiveStub::class, []);
+    }
+
+    public function testBindingResolutionException()
+    {
+        $this->expectException(BindingResolution::class);
+        $this->expectExceptionMessage("Target [Emberfuse\Tests\Container\Stubs\IContainerContractStub] is not instantiable.");
+
+        $container = new Container();
+        $container->make(IContainerContractStub::class, []);
+    }
+
+    public function testBindingResolutionExceptionWhenClassDoesNotExist()
+    {
+        $this->expectException(BindingResolution::class);
+        $this->expectExceptionMessage("Target class [Foo\Bar\Baz\DummyClass] does not exist.");
+
+        $container = new Container();
+        $container->build('Foo\Bar\Baz\DummyClass');
+    }
+
+    public function testForgetInstanceForgetsInstance()
+    {
+        $container = new Container();
+        $containerConcreteStub = new ContainerConcreteStub();
+        $container->instance(ContainerConcreteStub::class, $containerConcreteStub);
+        $this->assertTrue($container->isShared(ContainerConcreteStub::class));
+        $container->forgetInstance(ContainerConcreteStub::class);
+        $this->assertFalse($container->isShared(ContainerConcreteStub::class));
+    }
+
+    public function testForgetInstancesForgetsAllInstances()
+    {
+        $container = new Container();
+        $containerConcreteStub1 = new ContainerConcreteStub();
+        $containerConcreteStub2 = new ContainerConcreteStub();
+        $containerConcreteStub3 = new ContainerConcreteStub();
+        $container->instance('Instance1', $containerConcreteStub1);
+        $container->instance('Instance2', $containerConcreteStub2);
+        $container->instance('Instance3', $containerConcreteStub3);
+        $this->assertTrue($container->isShared('Instance1'));
+        $this->assertTrue($container->isShared('Instance2'));
+        $this->assertTrue($container->isShared('Instance3'));
+        $container->forgetInstances();
+        $this->assertFalse($container->isShared('Instance1'));
+        $this->assertFalse($container->isShared('Instance2'));
+        $this->assertFalse($container->isShared('Instance3'));
+    }
+
+    public function testContainerFlushFlushesAllBindingsAliasesAndResolvedInstances()
+    {
+        $container = new Container();
+        $container->bind('ConcreteStub', function () {
+            return new ContainerConcreteStub();
+        }, true);
+        $container->make('ConcreteStub');
+        $this->assertArrayHasKey('ConcreteStub', $container->getBindings());
+        $this->assertTrue($container->isShared('ConcreteStub'));
+        $container->flush();
+        $this->assertEmpty($container->getBindings());
+        $this->assertFalse($container->isShared('ConcreteStub'));
+    }
+
+    public function testResolvingWithArrayOfParameters()
+    {
+        $container = new Container();
+        $instance = $container->make(ContainerDefaultValueStub::class, ['default' => 'embers']);
+        $this->assertSame('embers', $instance->default);
+
+        $instance = $container->make(ContainerDefaultValueStub::class);
+        $this->assertSame('foobar', $instance->default);
+
+        $container->bind('foo', function ($app, $config) {
+            return $config;
+        });
+
+        $this->assertEquals([1, 2, 3], $container->make('foo', [1, 2, 3]));
+    }
+
+    public function testResolvingWithUsingAnInterface()
+    {
+        $container = new Container();
+        $container->bind(IContainerContractStub::class, ContainerInjectVariableStubWithInterfaceImplementation::class);
+        $instance = $container->make(IContainerContractStub::class, ['something' => 'roach']);
+        $this->assertSame('roach', $instance->something);
+    }
+
+    public function testNestedParameterOverride()
+    {
+        $container = new Container();
+        $container->bind('foo', function ($app, $config) {
+            return $app->make('bar', ['name' => 'Ghost']);
+        });
+        $container->bind('bar', function ($app, $config) {
+            return $config;
+        });
+
+        $this->assertEquals(['name' => 'Ghost'], $container->make('foo', ['something']));
+    }
+
+    public function testNestedParametersAreResetForFreshMake()
+    {
+        $container = new Container();
+
+        $container->bind('foo', function ($app, $config) {
+            return $app->make('bar');
+        });
+
+        $container->bind('bar', function ($app, $config) {
+            return $config;
+        });
+
+        $this->assertEquals([], $container->make('foo', ['something']));
+    }
+
+    public function testSingletonBindingsNotRespectedWithMakeParameters()
+    {
+        $container = new Container();
+
+        $container->singleton('foo', function ($app, $config) {
+            return $config;
+        });
+
+        $this->assertEquals(['name' => 'soap'], $container->make('foo', ['name' => 'soap']));
+        $this->assertEquals(['name' => 'price'], $container->make('foo', ['name' => 'price']));
+    }
+
+    public function testCanBuildWithoutParameterStackWithNoConstructors()
+    {
+        $container = new Container();
+        $this->assertInstanceOf(ContainerConcreteStub::class, $container->build(ContainerConcreteStub::class));
+    }
+
+    public function testCanBuildWithoutParameterStackWithConstructors()
+    {
+        $container = new Container();
+        $container->bind(IContainerContractStub::class, ContainerImplementationStub::class);
+        $this->assertInstanceOf(ContainerDependentStub::class, $container->build(ContainerDependentStub::class));
+    }
+
+    public function testContainerKnowsEntry()
+    {
+        $container = new Container();
+        $container->bind(IContainerContractStub::class, ContainerImplementationStub::class);
+        $this->assertTrue($container->has(IContainerContractStub::class));
+    }
+
+    public function testContainerCanBindAnyWord()
+    {
+        $container = new Container();
+        $container->bind('Ghost', stdClass::class);
+        $this->assertInstanceOf(stdClass::class, $container->get('Ghost'));
+    }
+
+    public function testContainerCanDynamicallySetService()
+    {
+        $container = new Container();
+        $this->assertFalse(isset($container['name']));
+        $container['name'] = 'Ghost';
+        $this->assertTrue(isset($container['name']));
+        $this->assertSame('Ghost', $container['name']);
+    }
+
+    public function testUnknownBindingEntryThrowsException()
+    {
+        $this->expectException(BindingNotFound::class);
+
+        $container = new Container();
+        $container->get('Ghost');
+    }
+
+    public function testBoundEntriesThrowsContainerExceptionWhenNotResolvable()
+    {
+        $this->expectException(ContainerExceptionInterface::class);
+
+        $container = new Container();
+        $container->bind('Ghost', IContainerContractStub::class);
+
+        $container->get('Ghost');
+    }
+
+    public function testContainerCanResolveClasses()
+    {
+        $container = new Container();
+        $class = $container->get(ContainerConcreteStub::class);
+
+        $this->assertInstanceOf(ContainerConcreteStub::class, $class);
     }
 }

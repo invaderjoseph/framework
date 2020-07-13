@@ -5,42 +5,48 @@ declare(strict_types=1);
 namespace Emberfuse\Container;
 
 use Closure;
-use ReflectionClass;
-use ReflectionException;
-use ReflectionParameter;
+use Exception;
+use ArrayAccess;
 use Psr\Container\ContainerInterface;
 use Emberfuse\Container\Exceptions\BindingNotFound;
 use Emberfuse\Container\Exceptions\BindingResolution;
 
-final class Container implements ContainerInterface
+class Container implements ContainerInterface, ArrayAccess
 {
     /**
      * The current globally available container (if any).
      *
      * @var static
      */
-    private static $instance;
+    protected static $instance;
 
     /**
      * Registered bindings.
      *
      * @var array
      */
-    private $bindings = [];
+    protected $bindings = [];
 
     /**
      * Registered sharable instances of bindings.
      *
      * @var array
      */
-    private $instances = [];
+    protected $instances = [];
 
     /**
      * The stack of concretions currently being built.
      *
      * @var array
      */
-    private $buildStack = [];
+    protected $buildStack = [];
+
+    /**
+     * The parameter override stack.
+     *
+     * @var array
+     */
+    protected $parameterOverride = [];
 
     /**
      * {@inheritdoc}
@@ -58,7 +64,7 @@ final class Container implements ContainerInterface
      *
      * @return bool
      */
-    private function isShared(string $abstract): bool
+    public function isShared(string $abstract): bool
     {
         // Determine if the given binding is set to be a sharable/singleton instance.
         return isset($this->instances[$abstract]) ||
@@ -78,6 +84,23 @@ final class Container implements ContainerInterface
     {
         // Bind a sharable instance of a binding to the service container.
         $this->bind($abstract, $concrete, true);
+    }
+
+    /**
+     * Register an existing instance as shared in the container.
+     *
+     * @param string                       $abstract
+     * @param object|string|array|int|bool $instance
+     *
+     * @return object|string|array|int|bool
+     */
+    public function instance(string $abstract, $instance)
+    {
+        // Save given instance of class to sharable instances registry.
+        $this->instances[$abstract] = $instance;
+
+        // Return same instance of class.
+        return $instance;
     }
 
     /**
@@ -142,7 +165,7 @@ final class Container implements ContainerInterface
     {
         try {
             // Try to resolve the given binding from the container.
-            return $this->make($id);
+            return $this->resolve($id);
         } catch (BindingResolution $exception) {
             // If an exception was thrown it is either because the binding does
             // not exist within the container or an error occurred during the resolution
@@ -182,28 +205,8 @@ final class Container implements ContainerInterface
      *
      * @throws \Emberfuse\Container\Exception\BindingResolution
      */
-    private function resolve(string $abstract, array $parameters = [])
+    protected function resolve(string $abstract, array $parameters = [])
     {
-        // Get concrete type from the container registry.
-        $concrete = $this->getConcrete($abstract);
-
-        // Determine if a sharable instance already exists within the container.
-        if (isset($this->instances[$abstract]) && $parameters === []) {
-            // If so, return the sharable instance.
-            return $this->instances[$abstract];
-        }
-
-        // Otherwise the type required to be instantiated or called upon.
-        $object = $this->build($concrete, $parameters);
-
-        // Determine if the binding is set to be a singleton/sharable instance.
-        if ($this->isShared($abstract)) {
-            // If so, save the resolved instance in the sharable instances registry.
-            $this->instances[$abstract] = $object;
-        }
-
-        // Return resolved results.
-        return $object;
     }
 
     /**
@@ -213,7 +216,7 @@ final class Container implements ContainerInterface
      *
      * @return \Closure|string
      */
-    private function getConcrete(string $abstract)
+    protected function getConcrete(string $abstract)
     {
         // Determine if a concrete type is bound in the container.
         if (isset($this->bindings[$abstract])) {
@@ -224,152 +227,6 @@ final class Container implements ContainerInterface
         // inside the container, so return the given string as the concrete type to be
         // resolved as a class.
         return $abstract;
-    }
-
-    /**
-     * Call the callback of the given binding with an array of parameters if given any.
-     *
-     * @param \Closure\string $concrete
-     * @param array[]         $parameters
-     *
-     * @return \Object|string|int|array|bool
-     *
-     * @throws \Emberfuse\Container\Exception\BindingResolution
-     */
-    private function build($concrete, array $parameters = [])
-    {
-        // Determine if the given concrete type is callable.
-        if ($concrete instanceof Closure) {
-            // If so, execute the callable functions with appropriate parameters.
-            return call_user_func_array($concrete, array_merge([$this], $parameters));
-        }
-
-        // If the given concrete type is not a callable, it means it is a string
-        // that is a class name and has to be instantiated.
-        try {
-            // Make new reflection class object of the concrete type.
-            // This is done so that the parameters/dependencies of the given class can
-            // also be resolved recursively.
-            $reflector = new ReflectionClass($concrete);
-        } catch (ReflectionException $exception) {
-            // If an exception was caught it means the concrete type is not a class name
-            // and cannot be resolved.
-            $this->throwBindingResolutionException($concrete, $exception);
-        }
-
-        // Determine if the class is not instantiable.
-        if (!$reflector->isInstantiable()) {
-            // If so, throw a resolution exception.
-            return $this->throwBindingResolutionException(
-                "Target [$concrete] is not instantiable."
-            );
-        }
-
-        // Get the constructor method of the class.
-        $constructor = $reflector->getConstructor();
-
-        // Determine if the class has a constructor method.
-        if (is_null($constructor)) {
-            // If not, it means the class has no dependencies and can be
-            // instantiated immediately.
-            return new $concrete();
-        }
-
-        // Get all parameters from the class constructor.
-        $dependencies = $constructor->getParameters();
-
-        try {
-            // Resolve all dependencies to it's relevant types.
-            $dependencies = $this->resolveDependencies(
-                array_merge($dependencies, $parameters)
-            );
-        } catch (BindingResolution $exception) {
-            throw $exception;
-        }
-
-        // return a new instance of the now resolving class with all appropriate
-        // dependencies (resolved dependencies).
-        return $reflector->newInstanceArgs($dependencies);
-    }
-
-    /**
-     * Resolve given array of dependencies.
-     *
-     * @param array $dependencies
-     *
-     * @return \Object|string|int|array|bool
-     *
-     * @throws \Emberfuse\Container\Exception\BindingResolution
-     */
-    protected function resolveDependencies(array $dependencies)
-    {
-        $results = [];
-
-        // Iterate through each set of parameters.
-        foreach ($dependencies as $dependency) {
-            // Determine and resolve each type of the parameters.
-            $results[] = is_null($dependency->getClass())
-                // Primitive types include, "string", "array", "integer" and "boolean".
-                ? $this->resolvePrimitive($dependency)
-                // These are parameters with class names.
-                : $this->resolveClass($dependency);
-        }
-
-        // Return resolved results.
-        return $results;
-    }
-
-    /**
-     * Resolve primitive type dependencies.
-     *
-     * @param \ReflectionParameter $parameter
-     *
-     * @return string|int|array|bool
-     *
-     * @throws \Emberfuse\Container\Exception\BindingResolution
-     */
-    protected function resolvePrimitive(ReflectionParameter $parameter)
-    {
-        // Determine if the parameters have default values assigned to them.
-        if ($parameter->isDefaultValueAvailable()) {
-            // If so, return the default values.
-            return $parameter->getDefaultValue();
-        }
-
-        // Else throw primitive is unresolvable error.
-        $this->throwBindingResolutionException(
-            "Unresolvable dependency resolving [$parameter] in class {$parameter->getDeclaringClass()->getName()}"
-        );
-    }
-
-    /**
-     * Resolve dependency of type object.
-     *
-     * @param \ReflectionParameter $parameter
-     *
-     * @return object
-     *
-     * @throws \Emberfuse\Container\Exception\BindingResolution
-     */
-    protected function resolveClass(ReflectionParameter $parameter)
-    {
-        // Recursively resolve the given object type.
-        return $this->make($parameter->getClass()->name);
-    }
-
-    /**
-     * Throw new instance of BindingResolution exception.
-     *
-     * @param string|null     $abstract
-     * @param \Exception|null $exception
-     *
-     * @return void
-     *
-     * @throws \Emberfuse\Container\Exception\BindingResolution
-     */
-    protected function throwBindingResolutionException(?string $abstract = null, ?Exception $exception = null): void
-    {
-        throw new BindingResolution($abstract, $exception->getCode(), $exception);
     }
 
     /**
@@ -404,15 +261,138 @@ final class Container implements ContainerInterface
     }
 
     /**
+     * Get the container's bindings.
+     *
+     * @return array
+     */
+    public function getBindings(): array
+    {
+        return $this->bindings;
+    }
+
+    /**
+     * Remove a resolved instance from the instance cache.
+     *
+     * @param string $abstract
+     *
+     * @return void
+     */
+    public function forgetInstance($abstract): void
+    {
+        unset($this->instances[$abstract]);
+    }
+
+    /**
+     * Clear all of the instances from the container.
+     *
+     * @return void
+     */
+    public function forgetInstances(): void
+    {
+        $this->instances = [];
+    }
+
+    /**
+     * Flush the container of all bindings and resolved instances.
+     *
+     * @return void
+     */
+    public function flush(): void
+    {
+        $this->bindings = [];
+        $this->instances = [];
+    }
+
+    /**
      * Drop all of the stale instances and aliases.
      *
      * @param string $abstract
      *
      * @return void
      */
-    private function dropStaleInstances(string $abstract): void
+    protected function dropStaleInstances(string $abstract): void
     {
         // Remove already existing instances of given binding.
-        unset($this->instances[$abstract], $this->aliases[$abstract]);
+        unset($this->instances[$abstract]);
+    }
+
+    /**
+     * Determine if a given offset exists.
+     *
+     * @param string $key
+     *
+     * @return bool
+     */
+    public function offsetExists($key)
+    {
+        return $this->has($key);
+    }
+
+    /**
+     * Get the value at a given offset.
+     *
+     * @param string $key
+     *
+     * @return object|string|array|int|bool
+     */
+    public function offsetGet($key)
+    {
+        return $this->get($key);
+    }
+
+    /**
+     * Set the value at a given offset.
+     *
+     * @param string                       $key
+     * @param object|string|array|int|bool $value
+     *
+     * @return void
+     */
+    public function offsetSet($key, $value)
+    {
+        $value = $value instanceof Closure
+            ? $value
+            : function () use ($value) {
+                return $value;
+            };
+
+        $this->bind($key, $value);
+    }
+
+    /**
+     * Unset the value at a given offset.
+     *
+     * @param string $key
+     *
+     * @return void
+     */
+    public function offsetUnset($key)
+    {
+        unset($this->bindings[$key], $this->instances[$key]);
+    }
+
+    /**
+     * Dynamically access container services.
+     *
+     * @param string $key
+     *
+     * @return object|string|array|int|bool
+     */
+    public function __get($key)
+    {
+        return $this[$key];
+    }
+
+    /**
+     * Dynamically set container services.
+     *
+     * @param string                       $key
+     * @param object|string|array|int|bool $value
+     *
+     * @return void
+     */
+    public function __set($key, $value)
+    {
+        $this[$key] = $value;
     }
 }

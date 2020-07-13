@@ -9,7 +9,7 @@ class ContainerDefaultValueStub
 
     public function __construct(ContainerConcreteStub $stub, $default = 'foobar')
     {
-        $this->stub    = $stub;
+        $this->stub = $stub;
         $this->default = $default;
     }
 }
