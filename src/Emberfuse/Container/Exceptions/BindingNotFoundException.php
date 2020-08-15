@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Emberfuse\Container\Exceptions;
 
-use Exception;
+use RuntimeException;
 use Psr\Container\NotFoundExceptionInterface;
 
-class BindingNotFound extends Exception implements NotFoundExceptionInterface
+class BindingNotFoundException extends RuntimeException implements NotFoundExceptionInterface
 {
 }

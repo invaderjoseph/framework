@@ -6,11 +6,11 @@ use stdClass;
 use PHPUnit\Framework\TestCase;
 use Emberfuse\Container\Container;
 use Psr\Container\ContainerExceptionInterface;
-use Emberfuse\Container\Exceptions\BindingNotFound;
-use Emberfuse\Container\Exceptions\BindingResolution;
 use Emberfuse\Tests\Container\Stubs\ContainerConcreteStub;
 use Emberfuse\Tests\Container\Stubs\ContainerDependentStub;
 use Emberfuse\Tests\Container\Stubs\IContainerContractStub;
+use Emberfuse\Container\Exceptions\BindingNotFoundException;
+use Emberfuse\Container\Exceptions\BindingResolutionException;
 use Emberfuse\Tests\Container\Stubs\ContainerDefaultValueStub;
 use Emberfuse\Tests\Container\Stubs\ContainerImplementationStub;
 use Emberfuse\Tests\Container\Stubs\ContainerNestedDependentStub;
@@ -162,7 +162,7 @@ class ContainerTest extends TestCase
 
     public function testInternalClassWithDefaultParameters()
     {
-        $this->expectException(BindingResolution::class);
+        $this->expectException(BindingResolutionException::class);
 
         $container = new Container();
         $container->make(ContainerMixedPrimitiveStub::class, []);
@@ -170,8 +170,8 @@ class ContainerTest extends TestCase
 
     public function testBindingResolutionException()
     {
-        $this->expectException(BindingResolution::class);
-        $this->expectExceptionMessage("Target [Emberfuse\Tests\Container\Stubs\IContainerContractStub] is not instantiable.");
+        $this->expectException(BindingResolutionException::class);
+        $this->expectExceptionMessage("[Emberfuse\Tests\Container\Stubs\IContainerContractStub] is not instantiable.");
 
         $container = new Container();
         $container->make(IContainerContractStub::class, []);
@@ -179,8 +179,8 @@ class ContainerTest extends TestCase
 
     public function testBindingResolutionExceptionWhenClassDoesNotExist()
     {
-        $this->expectException(BindingResolution::class);
-        $this->expectExceptionMessage("Target class [Foo\Bar\Baz\DummyClass] does not exist.");
+        $this->expectException(BindingResolutionException::class);
+        $this->expectExceptionMessage("Class [Foo\Bar\Baz\DummyClass] does not exist.");
 
         $container = new Container();
         $container->build('Foo\Bar\Baz\DummyClass');
@@ -256,13 +256,13 @@ class ContainerTest extends TestCase
     {
         $container = new Container();
         $container->bind('foo', function ($app, $config) {
-            return $app->make('bar', ['name' => 'Ghost']);
+            return $app->make('bar', ['name' => 'ghost']);
         });
         $container->bind('bar', function ($app, $config) {
             return $config;
         });
 
-        $this->assertEquals(['name' => 'Ghost'], $container->make('foo', ['something']));
+        $this->assertEquals(['name' => 'ghost'], $container->make('foo', ['something']));
     }
 
     public function testNestedParametersAreResetForFreshMake()
@@ -315,25 +315,25 @@ class ContainerTest extends TestCase
     public function testContainerCanBindAnyWord()
     {
         $container = new Container();
-        $container->bind('Ghost', stdClass::class);
-        $this->assertInstanceOf(stdClass::class, $container->get('Ghost'));
+        $container->bind('ghost', stdClass::class);
+        $this->assertInstanceOf(stdClass::class, $container->get('ghost'));
     }
 
     public function testContainerCanDynamicallySetService()
     {
         $container = new Container();
         $this->assertFalse(isset($container['name']));
-        $container['name'] = 'Ghost';
+        $container['name'] = 'ghost';
         $this->assertTrue(isset($container['name']));
-        $this->assertSame('Ghost', $container['name']);
+        $this->assertSame('ghost', $container['name']);
     }
 
     public function testUnknownBindingEntryThrowsException()
     {
-        $this->expectException(BindingNotFound::class);
+        $this->expectException(BindingNotFoundException::class);
 
         $container = new Container();
-        $container->get('Ghost');
+        $container->get('ghost');
     }
 
     public function testBoundEntriesThrowsContainerExceptionWhenNotResolvable()
@@ -341,9 +341,9 @@ class ContainerTest extends TestCase
         $this->expectException(ContainerExceptionInterface::class);
 
         $container = new Container();
-        $container->bind('Ghost', IContainerContractStub::class);
+        $container->bind('ghost', IContainerContractStub::class);
 
-        $container->get('Ghost');
+        $container->get('ghost');
     }
 
     public function testContainerCanResolveClasses()

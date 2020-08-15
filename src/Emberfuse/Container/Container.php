@@ -7,9 +7,11 @@ namespace Emberfuse\Container;
 use Closure;
 use Exception;
 use ArrayAccess;
+use ReflectionClass;
+use ReflectionParameter;
 use Psr\Container\ContainerInterface;
-use Emberfuse\Container\Exceptions\BindingNotFound;
-use Emberfuse\Container\Exceptions\BindingResolution;
+use Emberfuse\Container\Exceptions\BindingNotFoundException;
+use Emberfuse\Container\Exceptions\BindingResolutionException;
 
 class Container implements ContainerInterface, ArrayAccess
 {
@@ -67,6 +69,9 @@ class Container implements ContainerInterface, ArrayAccess
     public function isShared(string $abstract): bool
     {
         // Determine if the given binding is set to be a sharable/singleton instance.
+        // 1. Check if given abstract alias is registered in the instances collection
+        // 2. Check if the given abstract alias has a shared flag
+        // 3. Check if the given abstract alias is supposed to be a shared instance.
         return isset($this->instances[$abstract]) ||
             (isset($this->bindings[$abstract]['shared']) &&
             true === $this->bindings[$abstract]['shared']);
@@ -114,7 +119,7 @@ class Container implements ContainerInterface, ArrayAccess
      */
     public function bind(string $abstract, $concrete = null, bool $shared = false): void
     {
-        // Determine if a binsing with same abstract type exists.
+        // Determine if a binding with same abstract type exists.
         if ($this->has($abstract)) {
             // If so, remove it from the register and make a fresh registration.
             $this->dropStaleInstances($abstract);
@@ -134,7 +139,7 @@ class Container implements ContainerInterface, ArrayAccess
             // If not, it is probably because the concrete is set to be the same
             // as the abstract type and so it needs to be resolved and wrapped inside
             // a callable function.
-            $concrete = $this->makeClosure($concrete);
+            $concrete = $this->makeClosure($abstract, $concrete);
         }
 
         // Bind the abstract and concrete types into the container registry as
@@ -145,16 +150,28 @@ class Container implements ContainerInterface, ArrayAccess
     /**
      * Wrap given concrete binding type inside closure.
      *
+     * @param string $abstract
      * @param string $concrete
      *
      * @return \Closure
      */
-    protected function makeClosure(string $concrete): Closure
+    protected function makeClosure(string $abstract, string $concrete): Closure
     {
         // Use the container as an argument so the given concrete type which is
         // usually a class name can be resolved during the "make/resolve" process.
-        return function ($container) use ($concrete) {
-            return $container->build($concrete);
+        // The given array of parameters will be used to override the default set of
+        // parameters.
+        return function ($container, array $parameters = []) use ($abstract, $concrete) {
+            // Determine if the abstract and concrete are the same.
+            // Usually when given arguments are class names.
+            if ($abstract == $concrete) {
+                // Build an instance of the given concrete type.
+                return $container->build($concrete);
+            }
+
+            // Resolve the given concrete type from the container using the given
+            // parameters to override the default parameters.
+            return $container->resolve($concrete, $parameters);
         };
     }
 
@@ -166,7 +183,7 @@ class Container implements ContainerInterface, ArrayAccess
         try {
             // Try to resolve the given binding from the container.
             return $this->resolve($id);
-        } catch (BindingResolution $exception) {
+        } catch (BindingResolutionException $exception) {
             // If an exception was thrown it is either because the binding does
             // not exist within the container or an error occurred during the resolution
             // process of the given binding.
@@ -174,7 +191,7 @@ class Container implements ContainerInterface, ArrayAccess
                 throw $exception;
             }
 
-            throw new BindingNotFound($id, $exception->getCode(), $exception);
+            throw new BindingNotFoundException($id, $exception->getCode(), $exception);
         }
     }
 
@@ -207,6 +224,39 @@ class Container implements ContainerInterface, ArrayAccess
      */
     protected function resolve(string $abstract, array $parameters = [])
     {
+        // Check if an instance of the given binding already exists.
+        if (isset($this->instances[$abstract]) && empty($parameters)) {
+            // If it is return the already bound instance.
+            return $this->instances[$abstract];
+        }
+
+        // Save the given parameters to be used later as an override
+        // of the default parameters.
+        $this->parameterOverride[] = $parameters;
+
+        // Get the bound concrete implementation of the given abstract.
+        $concrete = $this->getConcrete($abstract);
+
+        // Check if the bound concrete implementation is buildable.
+        if ($this->isBuildable($concrete, $abstract)) {
+            // If it is instantiate it.
+            $object = $this->build($concrete);
+        } else {
+            // Otherwise recursively resolve given concrete type.
+            $object = $this->make($concrete);
+        }
+
+        // Determine if the given binding should be a shared instance.
+        if ($this->isShared($abstract)) {
+            // If it is save built instance of the object to instances register.
+            $this->instances[$abstract] = $object;
+        }
+
+        // Remove parameter overrides from stack.
+        array_pop($this->parameterOverride);
+
+        // Return newly created instance of the requested binding.
+        return $object;
     }
 
     /**
@@ -227,6 +277,182 @@ class Container implements ContainerInterface, ArrayAccess
         // inside the container, so return the given string as the concrete type to be
         // resolved as a class.
         return $abstract;
+    }
+
+    /**
+     * Determine if the given concrete is buildable.
+     *
+     * @param mixed  $concrete
+     * @param string $abstract
+     *
+     * @return bool
+     */
+    protected function isBuildable($concrete, string $abstract): bool
+    {
+        // Determine if the given concrete type is buildable (callable or instantiable).
+        return $concrete === $abstract || $concrete instanceof Closure;
+    }
+
+    /**
+     * Instantiate a given concrete type with required dependencies.
+     *
+     * @param mixed $concrete
+     *
+     * @return mixed
+     *
+     * @throws \Emberfuse\Container\Exceptions\BindingResolutionException
+     */
+    public function build($concrete)
+    {
+        if ($concrete instanceof Closure) {
+            return call_user_func_array(
+                $concrete,
+                [$this, $this->getLastParameterOverride()]
+            );
+        }
+
+        try {
+            $reflector = new ReflectionClass($concrete);
+        } catch (Exception $e) {
+            throw new BindingResolutionException("Class [$concrete] does not exist.", 0, $e);
+        }
+
+        if (!$reflector->isInstantiable()) {
+            return $this->notInstantiable($concrete);
+        }
+
+        $constructor = $reflector->getConstructor();
+
+        if (is_null($constructor)) {
+            return $reflector->newInstance();
+        }
+
+        $dependencies = $constructor->getParameters();
+
+        $dependencies = $this->resolveDependencies($dependencies);
+
+        return $reflector->newInstanceArgs($dependencies);
+    }
+
+    /**
+     * Resolve given array of class dependencies.
+     *
+     * @param array $dependencies
+     *
+     * @return array
+     *
+     * @throws \Emberfuse\Container\Exceptions\BindingResolutionException
+     */
+    protected function resolveDependencies(array $dependencies): array
+    {
+        $resolved = [];
+
+        foreach ($dependencies as $dependency) {
+            if ($this->hasParameterOverride($dependency)) {
+                $resolved[] = $this->getParameterOverride($dependency);
+
+                continue;
+            }
+
+            $resolution = is_null($dependency->getClass())
+                ? $this->resolvePrimitive($dependency)
+                : $this->resolveClass($dependency);
+
+            $resolved[] = $resolution;
+        }
+
+        return $resolved;
+    }
+
+    /**
+     * Determine if the given dependency has a parameter override.
+     *
+     * @param \ReflectionParameter $dependency
+     *
+     * @return bool
+     */
+    protected function hasParameterOverride($dependency)
+    {
+        return array_key_exists(
+            $dependency->name,
+            $this->getLastParameterOverride()
+        );
+    }
+
+    /**
+     * Get a parameter override for a dependency.
+     *
+     * @param \ReflectionParameter $dependency
+     *
+     * @return mixed
+     */
+    protected function getParameterOverride($dependency)
+    {
+        return $this->getLastParameterOverride()[$dependency->name];
+    }
+
+    /**
+     * Get the last parameter override.
+     *
+     * @return array
+     */
+    protected function getLastParameterOverride()
+    {
+        return count($this->parameterOverride) ? end($this->parameterOverride) : [];
+    }
+
+    /**
+     * Resolve a dependency that has a type of primitive.
+     *
+     * @param \ReflectionParameter $parameter
+     *
+     * @return mixed
+     *
+     * @throws \Emberfuse\Container\Exceptions\BindingResolutionException
+     */
+    protected function resolvePrimitive(ReflectionParameter $parameter)
+    {
+        if ($parameter->isDefaultValueAvailable()) {
+            return $parameter->getDefaultValue();
+        }
+
+        throw new BindingResolutionException("[$parameter] is unresolvable.");
+    }
+
+    /**
+     * Resolve a class based dependency.
+     *
+     * @param \ReflectionParameter $parameter
+     *
+     * @return object
+     *
+     * @throws \Emberfuse\Container\Exceptions\BindingResolutionException
+     */
+    protected function resolveClass(ReflectionParameter $parameter)
+    {
+        try {
+            return $this->make($parameter->getClass()->name);
+        } catch (BindingResolutionException $e) {
+            if ($parameter->isOptional()) {
+                return $parameter->getDefaultValue();
+            }
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Throw a resolution exception that the concrete is not instantiable.
+     *
+     * @param string $concrete
+     *
+     * @return void
+     *
+     * @throws \Emberfuse\Container\Exceptions\BindingResolutionException
+     */
+    protected function notInstantiable(string $concrete): void
+    {
+        throw new BindingResolutionException("[$concrete] is not instantiable.");
     }
 
     /**

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Emberfuse\Container\Exceptions;
 
-use Exception;
+use RuntimeException;
 use Psr\Container\ContainerExceptionInterface;
 
-class BindingResolution extends Exception implements ContainerExceptionInterface
+class BindingResolutionException extends RuntimeException implements ContainerExceptionInterface
 {
 }
