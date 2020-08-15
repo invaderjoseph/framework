@@ -1,6 +1,10 @@
 name: Tests
 
-on: ['push', 'pull_request']
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 0 * * *'
 
 jobs:
   ci:
@@ -34,10 +38,6 @@ jobs:
 
     - name: Install Composer dependencies
       run: composer update --${{ matrix.dependency-version }} --no-interaction --prefer-dist
-
-    - name: Coding Style Checks
-      run: |
-       vendor/bin/php-cs-fixer fix -v --dry-run
 
     - name: Integration Tests
       run: php ./vendor/bin/phpunit
