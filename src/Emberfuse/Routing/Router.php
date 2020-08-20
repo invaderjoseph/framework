@@ -55,7 +55,7 @@ class Router implements RouterInterface
      */
     public function get(string $uri, string $action): Route
     {
-        return $this->addRoute($uri, $action);
+        return $this->addRoute('GET', $uri, $action);
     }
 
     /**
@@ -118,18 +118,19 @@ class Router implements RouterInterface
     {
     }
 
-    protected function addRoute(string $uri, string $action): Route
+    protected function addRoute(string $method, string $uri, string $action): Route
     {
         return $this->getRouteCollection()->add(
-            $this->createRoute($uri, $action)
+            $this->createRoute($method, $uri, $action)
         );
     }
 
-    protected function createRoute(string $uri, string $action)
+    protected function createRoute(string $method, string $uri, string $action): Route
     {
-        $route = new Route($uri, 'GET', $action);
+        $route = new Route($method, $uri, $action);
 
-        $route->setRouter($this)->setContianer($this->container);
+        $route->setRouter($this)
+            ->setContainer($this->container);
 
         return $route;
     }
@@ -146,7 +147,7 @@ class Router implements RouterInterface
         return $this->runRoute($request, $this->findRoute($request));
     }
 
-    public function findRoute($request)
+    public function findRoute(Request $request): Route
     {
         try {
             $route = $this->routes->match($request);

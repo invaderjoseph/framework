@@ -9,24 +9,54 @@ use Symfony\Component\Routing\Exception\RouteNotFoundException;
 class RouteCollection extends AbstractRouteCollection implements RouteCollectionInterface
 {
     /**
-     * An array of the routes keyed by method.
+     * List of routes with method as index.
      *
      * @var array
      */
     protected $routes = [];
 
-    public function add(Route $route)
+    /**
+     * A flattened list of all registered routes.
+     *
+     * @var array
+     */
+    protected $routesList = [];
+
+    /**
+     * Add route to routes collections.
+     *
+     * @param \Emberfuse\ROuting\Route $route
+     */
+    public function add(Route $route): Route
     {
         $this->addToCollections($route);
 
         return $route;
     }
 
-    protected function addToCollections(Route $route)
+    /**
+     * Add given route instance to all set collections.
+     *
+     * @param \Emberfuse\ROuting\Route $route
+     *
+     * @return void
+     */
+    protected function addToCollections(Route $route): void
     {
         $this->routes[$route->method()][$route->uri()] = $route;
+
+        $this->routesList["{$route->method()}-{$route->uri()}"] = $route;
     }
 
+    /**
+     * Find requested route binding using given request instance.
+     *
+     * @param \Symfony\Component\HttpFoundation\Request $request
+     *
+     * @return \Emberfuse\ROuting\Route
+     *
+     * @throws \Symfony\Component\Routing\Exception\RouteNotFoundException
+     */
     public function match(Request $request)
     {
         $routes = $this->routes[$request->getMethod()];
@@ -38,5 +68,25 @@ class RouteCollection extends AbstractRouteCollection implements RouteCollection
         }
 
         throw new RouteNotFoundException();
+    }
+
+    /**
+     * Get all registered routes.
+     *
+     * @return array
+     */
+    public function getRoutes(): array
+    {
+        return $this->routes;
+    }
+
+    /**
+     * Get full list of registered routes.
+     *
+     * @return array
+     */
+    public function getRoutesList(): array
+    {
+        return $this->routesList;
     }
 }

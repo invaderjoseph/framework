@@ -8,6 +8,6 @@ class MethodValidator implements ValidatorInterface
 {
     public function validate(...$arguments): bool
     {
-        return $arguments[0]->getMethod() === $arguments[1]->method();
+        return $arguments[0]->method() === $arguments[1]->getMethod();
     }
 }

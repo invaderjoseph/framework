@@ -3,7 +3,6 @@
 namespace Emberfuse\Routing;
 
 use Psr\Container\ContainerInterface;
-use Symfony\Component\Routing\RouteCompiler;
 use Symfony\Component\HttpFoundation\Request;
 use Emberfuse\Routing\Validators\UriValidator;
 use Emberfuse\Routing\Validators\HostValidator;
@@ -13,13 +12,17 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class Route
 {
-    protected $uri;
+    public $uri;
 
-    protected $method;
+    public $method;
 
-    protected $action;
+    public $action;
 
-    protected $compiled;
+    public $compiled;
+
+    public $parameterNames = [];
+
+    public $optionalParameters = [];
 
     protected $router;
 
@@ -31,27 +34,24 @@ class Route
         HostValidator::class,
     ];
 
-    public function __construct(string $uri, string $method, string $action)
+    public function __construct(string $method, string $uri, string $action)
     {
-        $this->uri = $this->prefix($uri);
         $this->method = $method;
+        $this->uri = $this->prefix($uri);
         $this->action = RouteAction::parse($action);
     }
 
     public function run()
     {
-        $this->container();
-
         try {
-            return $this->runController();
+            return $this->dispatchController();
         } catch (HttpException $e) {
             return $e->getResponse();
         }
     }
 
-    protected function runController()
+    protected function dispatchController()
     {
-        return $this->dispatch($this, $this->getController(), $this->getControllerMethod());
     }
 
     public function getController(): string
@@ -66,6 +66,8 @@ class Route
 
     public function matches(Request $request)
     {
+        $this->bindParameters();
+
         $this->compileRoute();
 
         foreach (static::validators() as $validator) {
@@ -79,10 +81,13 @@ class Route
         return true;
     }
 
+    protected function bindParameters(): void
+    {
+        (new RouteParameters($this))->bind();
+    }
+
     protected function compileRoute()
     {
-        dd(RouteCompiler::compile($this));
-
         if (!$this->compiled) {
             $this->compiled = RouteCompiler::compile($this);
         }
