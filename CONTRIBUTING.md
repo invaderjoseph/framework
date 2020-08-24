@@ -1,6 +1,6 @@
 # Contributing
 
-When contributing to this repository, please first discuss the change you wish to make via issue, email, or any other method with the owners of this repository before making a change. 
+When contributing to this repository, please first discuss the change you wish to make via issue, email, or any other method with the owners of this repository before making a change.
 
 Please note we have a code of conduct, please follow it in all your interactions with the project.
 
@@ -20,9 +20,7 @@ our community a harassment-free experience for everyone, regardless of age, body
 
 ### Our Standards
 
-Examples of behavior that contributes to creating a positive environment
-include:
-
+Examples of behavior that contributes to creating a positive environment include:
 * Using welcoming and inclusive language
 * Being respectful of differing viewpoints and experiences
 * Gracefully accepting constructive criticism
@@ -30,7 +28,6 @@ include:
 * Showing empathy towards other community members
 
 Examples of unacceptable behavior by participants include:
-
 * The use of sexualized language or imagery and unwelcome sexual attention or
 advances
 * Trolling, insulting/derogatory comments, and personal or political attacks
