@@ -2,10 +2,14 @@
 
 namespace Emberfuse\Routing;
 
+use Exception;
 use Emberfuse\Container\Container;
 use Psr\Container\ContainerInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Emberfuse\Routing\Contracts\RouterInterface;
 use Emberfuse\Routing\Contracts\RouteCollectionInterface;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class Router implements RouterInterface
 {
@@ -40,6 +44,7 @@ class Router implements RouterInterface
      */
     public function get(string $uri, string $action): Route
     {
+        return $this->addRoute('GET', $uri, $action);
     }
 
     /**
@@ -52,6 +57,7 @@ class Router implements RouterInterface
      */
     public function post(string $uri, string $action): Route
     {
+        return $this->addRoute('POST', $uri, $action);
     }
 
     /**
@@ -64,6 +70,7 @@ class Router implements RouterInterface
      */
     public function put(string $uri, string $action): Route
     {
+        return $this->addRoute('PUT', $uri, $action);
     }
 
     /**
@@ -76,6 +83,7 @@ class Router implements RouterInterface
      */
     public function patch(string $uri, string $action): Route
     {
+        return $this->addRoute('PATCH', $uri, $action);
     }
 
     /**
@@ -88,6 +96,7 @@ class Router implements RouterInterface
      */
     public function delete(string $uri, string $action): Route
     {
+        return $this->addRoute('DELETE', $uri, $action);
     }
 
     /**
@@ -100,6 +109,7 @@ class Router implements RouterInterface
      */
     public function options(string $uri, string $action): Route
     {
+        return $this->addRoute('OPTIONS', $uri, $action);
     }
 
     /**
@@ -134,6 +144,69 @@ class Router implements RouterInterface
             ->compile();
 
         return $route;
+    }
+
+    /**
+     * Dispatch the request to the application.
+     *
+     * @param \Symfony\Component\HttpFoundation\Request $request
+     *
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
+    public function dispatch(Request $request): Response
+    {
+        return $this->dispatchToRoute($request);
+    }
+
+    /**
+     * Dispatch request to route and return response.
+     *
+     * @param \Symfony\Component\HttpFoundation\Request $request
+     *
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
+    protected function dispatchToRoute(Request $request): Response
+    {
+        try {
+            $route = $this->findRoute($request);
+        } catch (Exception $e) {
+            throw new NotFoundHttpException();
+        }
+
+        return $this->prepareResponse($request, $route->run($request));
+    }
+
+    /**
+     * Find the route matching a given request.
+     *
+     * @param \Symfony\Component\HttpFoundation\Request $request
+     *
+     * @return \Emberfuse\Routing\Route
+     */
+    protected function findRoute(Request $request): Route
+    {
+        $route = $this->routes->match($request);
+
+        $this->container->instance(Route::class, $route);
+
+        return $route;
+    }
+
+    /**
+     * Create a response instance from the given value.
+     *
+     * @param \Symfony\Component\HttpFoundation\Request $request
+     * @param mixed                                     $response
+     *
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
+    protected function prepareResponse($request, $response): Response
+    {
+        if (!$response instanceof Response) {
+            $response = new Response($response);
+        }
+
+        return $response->prepare($request);
     }
 
     /**

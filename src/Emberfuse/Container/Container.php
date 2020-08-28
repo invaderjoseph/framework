@@ -55,7 +55,6 @@ class Container implements ContainerInterface, ArrayAccess
      */
     public function has($id)
     {
-        // Determine if the given binding has already been registered to the container.
         return isset($this->bindings[$id]) || isset($this->instances[$id]);
     }
 
@@ -68,10 +67,6 @@ class Container implements ContainerInterface, ArrayAccess
      */
     public function isShared(string $abstract): bool
     {
-        // Determine if the given binding is set to be a sharable/singleton instance.
-        // 1. Check if given abstract alias is registered in the instances collection
-        // 2. Check if the given abstract alias has a shared flag
-        // 3. Check if the given abstract alias is supposed to be a shared instance.
         return isset($this->instances[$abstract]) ||
             (isset($this->bindings[$abstract]['shared']) &&
             true === $this->bindings[$abstract]['shared']);
@@ -87,7 +82,6 @@ class Container implements ContainerInterface, ArrayAccess
      */
     public function singleton(string $abstract, $concrete = null): void
     {
-        // Bind a sharable instance of a binding to the service container.
         $this->bind($abstract, $concrete, true);
     }
 
@@ -101,10 +95,8 @@ class Container implements ContainerInterface, ArrayAccess
      */
     public function instance(string $abstract, $instance)
     {
-        // Save given instance of class to sharable instances registry.
         $this->instances[$abstract] = $instance;
 
-        // Return same instance of class.
         return $instance;
     }
 
@@ -119,31 +111,18 @@ class Container implements ContainerInterface, ArrayAccess
      */
     public function bind(string $abstract, $concrete = null, bool $shared = false): void
     {
-        // Determine if a binding with same abstract type exists.
         if ($this->has($abstract)) {
-            // If so, remove it from the register and make a fresh registration.
             $this->dropStaleInstances($abstract);
         }
 
-        // Determine if the concrete type is provided.
         if (is_null($concrete)) {
-            // If it is not, assign the abstract type to the concrete.
-            // This is usually because the abstract is a name of a class
-            // and the class is expected to be automatically resolved
-            // during the binding process.
             $concrete = $abstract;
         }
 
-        // Determine if the provided concrete type is a callable
         if (!$concrete instanceof Closure) {
-            // If not, it is probably because the concrete is set to be the same
-            // as the abstract type and so it needs to be resolved and wrapped inside
-            // a callable function.
             $concrete = $this->makeClosure($abstract, $concrete);
         }
 
-        // Bind the abstract and concrete types into the container registry as
-        // one of the container's bindings.
         $this->bindings[$abstract] = compact('concrete', 'shared');
     }
 
@@ -157,20 +136,11 @@ class Container implements ContainerInterface, ArrayAccess
      */
     protected function makeClosure(string $abstract, string $concrete): Closure
     {
-        // Use the container as an argument so the given concrete type which is
-        // usually a class name can be resolved during the "make/resolve" process.
-        // The given array of parameters will be used to override the default set of
-        // parameters.
         return function ($container, array $parameters = []) use ($abstract, $concrete) {
-            // Determine if the abstract and concrete are the same.
-            // Usually when given arguments are class names.
             if ($abstract == $concrete) {
-                // Build an instance of the given concrete type.
                 return $container->build($concrete);
             }
 
-            // Resolve the given concrete type from the container using the given
-            // parameters to override the default parameters.
             return $container->resolve($concrete, $parameters);
         };
     }
@@ -181,12 +151,8 @@ class Container implements ContainerInterface, ArrayAccess
     public function get($id)
     {
         try {
-            // Try to resolve the given binding from the container.
             return $this->resolve($id);
         } catch (BindingResolutionException $exception) {
-            // If an exception was thrown it is either because the binding does
-            // not exist within the container or an error occurred during the resolution
-            // process of the given binding.
             if ($this->has($id)) {
                 throw $exception;
             }
@@ -207,8 +173,6 @@ class Container implements ContainerInterface, ArrayAccess
      */
     public function make(string $abstract, array $parameters = [])
     {
-        // Use the "resolve" method to resolve the given binding from the container
-        // or instantly resolve the class type for usage,
         return $this->resolve($abstract, $parameters);
     }
 
@@ -224,38 +188,26 @@ class Container implements ContainerInterface, ArrayAccess
      */
     protected function resolve(string $abstract, array $parameters = [])
     {
-        // Check if an instance of the given binding already exists.
         if (isset($this->instances[$abstract]) && empty($parameters)) {
-            // If it is return the already bound instance.
             return $this->instances[$abstract];
         }
 
-        // Save the given parameters to be used later as an override
-        // of the default parameters.
         $this->parameterOverride[] = $parameters;
 
-        // Get the bound concrete implementation of the given abstract.
         $concrete = $this->getConcrete($abstract);
 
-        // Check if the bound concrete implementation is buildable.
         if ($this->isBuildable($concrete, $abstract)) {
-            // If it is instantiate it.
             $object = $this->build($concrete);
         } else {
-            // Otherwise recursively resolve given concrete type.
             $object = $this->make($concrete);
         }
 
-        // Determine if the given binding should be a shared instance.
         if ($this->isShared($abstract)) {
-            // If it is save built instance of the object to instances register.
             $this->instances[$abstract] = $object;
         }
 
-        // Remove parameter overrides from stack.
         array_pop($this->parameterOverride);
 
-        // Return newly created instance of the requested binding.
         return $object;
     }
 
@@ -268,14 +220,10 @@ class Container implements ContainerInterface, ArrayAccess
      */
     protected function getConcrete(string $abstract)
     {
-        // Determine if a concrete type is bound in the container.
         if (isset($this->bindings[$abstract])) {
             return $this->bindings[$abstract]['concrete'];
         }
 
-        // If no concrete type was found, the given abstract type was not bound
-        // inside the container, so return the given string as the concrete type to be
-        // resolved as a class.
         return $abstract;
     }
 
@@ -289,7 +237,6 @@ class Container implements ContainerInterface, ArrayAccess
      */
     protected function isBuildable($concrete, string $abstract): bool
     {
-        // Determine if the given concrete type is buildable (callable or instantiable).
         return $concrete === $abstract || $concrete instanceof Closure;
     }
 
@@ -462,14 +409,10 @@ class Container implements ContainerInterface, ArrayAccess
      */
     public static function getInstance()
     {
-        // Determine if a globally available instance of the
-        // service container is available to access.
         if (is_null(static::$instance)) {
-            // If not, make new instance and set self as instance.
             static::makeInstance(new static());
         }
 
-        // Return globally available instance of the container.
         return static::$instance;
     }
 
@@ -482,7 +425,6 @@ class Container implements ContainerInterface, ArrayAccess
      */
     public static function makeInstance(?ContainerInterface $container = null)
     {
-        // Set default sharable insensate of the service container.
         return static::$instance = $container;
     }
 
@@ -538,7 +480,6 @@ class Container implements ContainerInterface, ArrayAccess
      */
     protected function dropStaleInstances(string $abstract): void
     {
-        // Remove already existing instances of given binding.
         unset($this->instances[$abstract]);
     }
 

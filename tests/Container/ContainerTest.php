@@ -3,7 +3,7 @@
 namespace Emberfuse\Tests\Container;
 
 use stdClass;
-use PHPUnit\Framework\TestCase;
+use Emberfuse\Tests\TestCase;
 use Emberfuse\Container\Container;
 use Psr\Container\ContainerExceptionInterface;
 use Emberfuse\Tests\Container\Stubs\ContainerConcreteStub;
