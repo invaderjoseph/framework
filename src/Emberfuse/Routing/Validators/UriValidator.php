@@ -6,11 +6,18 @@ use Emberfuse\Routing\Contracts\ValidatorInterface;
 
 class UriValidator implements ValidatorInterface
 {
+    /**
+     * Run validation against or using the provided arguments.
+     *
+     * @param array $arguments
+     *
+     * @return bool
+     */
     public function validate(...$arguments): bool
     {
-        $path = $arguments[1]->getPathInfo() === '/'
-            ? '/'
-            : '/' . $arguments[1]->getPathInfo();
+        $requestPath = trim($arguments[1]->getPathInfo(), '/');
+
+        $path = $requestPath === '/' ? '/' : '/' . $requestPath;
 
         return preg_match(
             $arguments[0]->getCompiled()->getRegex(),

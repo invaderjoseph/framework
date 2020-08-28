@@ -5,7 +5,9 @@ namespace Emberfuse\Routing;
 use Countable;
 use ArrayIterator;
 use IteratorAggregate;
+use Symfony\Component\HttpFoundation\Request;
 use Emberfuse\Routing\Contracts\RouteCollectionInterface;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 class RouteCollection implements RouteCollectionInterface, Countable, IteratorAggregate
 {
@@ -49,6 +51,26 @@ class RouteCollection implements RouteCollectionInterface, Countable, IteratorAg
         $this->routes[$route->method()][$route->uri()] = $route;
 
         $this->allRoutes[$route->method() . $route->uri()] = $route;
+    }
+
+    /**
+     * Find the route matching a given request.
+     *
+     * @param \Symfony\Component\HttpFoundation\Request $request
+     *
+     * @return \Emberfse\Routing\Route
+     *
+     * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
+     */
+    public function match(Request $request): Route
+    {
+        foreach ($this->routes[$request->getMethod()] as $route) {
+            if ($route->matches($request)) {
+                return $route->bind($request);
+            }
+        }
+
+        throw new RouteNotFoundException();
     }
 
     /**
