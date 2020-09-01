@@ -2,9 +2,16 @@
 
 namespace Emberfuse\Base;
 
+use BadMethodCallException;
+use Psr\Log\LoggerInterface;
 use Emberfuse\Routing\Router;
 use Emberfuse\Container\Container;
+use Monolog\Logger as MonologLogger;
+use Emberfuse\Base\Contracts\ServiceInterface;
+use Emberfuse\Routing\Contracts\RouterInterface;
 use Emberfuse\Base\Contracts\ApplicationInterface;
+use Emberfuse\Base\Contracts\ExceptionHandlerInterface;
+use Emberfuse\Base\Exceptions\InvalidServiceClassException;
 
 class Application extends Container implements ApplicationInterface
 {
@@ -52,6 +59,20 @@ class Application extends Container implements ApplicationInterface
     protected $router;
 
     /**
+     * Instance of LoggerInterface implementation.
+     *
+     * @var \Psr\Log\LoggerInterface
+     */
+    protected $logger;
+
+    /**
+     * All of the registered service providers.
+     *
+     * @var array
+     */
+    protected $services = [];
+
+    /**
      * Create new instance of Emberfuse application.
      *
      * @param string $basePath
@@ -62,9 +83,8 @@ class Application extends Container implements ApplicationInterface
     {
         $this->setBasePath($basePath)
             ->registerBaseBindings()
-            ->registerErrorHandling()
-            ->bootstrapLogger()
-            ->bootstrapRouter();
+            ->registerBaseServices()
+            ->registerErrorHandling();
     }
 
     /**
@@ -72,9 +92,9 @@ class Application extends Container implements ApplicationInterface
      *
      * @param string $path
      *
-     * @return \Emberfuse\Base\Application
+     * @return \Emberfuse\Base\Contracts\ApplicationInterface
      */
-    public function setBasePath(string $path): Application
+    public function setBasePath(string $path): ApplicationInterface
     {
         $this->basePath = rtrim($path, '\/');
 
@@ -122,9 +142,9 @@ class Application extends Container implements ApplicationInterface
     /**
      * Bootstrap the application container.
      *
-     * @return \Emberfuse\Base\Application
+     * @return \Emberfuse\Base\Contracts\ApplicationInterface
      */
-    protected function registerBaseBindings(): Application
+    protected function registerBaseBindings(): ApplicationInterface
     {
         static::makeInstance($this);
 
@@ -136,13 +156,27 @@ class Application extends Container implements ApplicationInterface
     }
 
     /**
+     * Register base application services.
+     *
+     * @return \Emberfuse\Base\Contracts\ApplicationInterface
+     */
+    protected function registerBaseServices(): ApplicationInterface
+    {
+        return $this->bootstrapLogger()
+            ->bootstrapExceptionHandler()
+            ->bootstrapRouter();
+    }
+
+    /**
      * Bootstrap the router instance.
      *
-     * @return \Emberfuse\Base\Application
+     * @return \Emberfuse\Base\Contracts\ApplicationInterface
      */
-    public function bootstrapLogger(): Application
+    public function bootstrapLogger(): ApplicationInterface
     {
-        // $this->logger = new Logger($this['config']['logging']);
+        $this->singleton(LoggerInterface::class, function ($app) {
+            return new Logger(new MonologLogger($app->environment()));
+        });
 
         return $this;
     }
@@ -150,11 +184,29 @@ class Application extends Container implements ApplicationInterface
     /**
      * Bootstrap the router instance.
      *
-     * @return \Emberfuse\Base\Application
+     * @return \Emberfuse\Base\Contracts\ApplicationInterface
      */
-    public function bootstrapRouter(): Application
+    public function bootstrapExceptionHandler(): ApplicationInterface
+    {
+        $this->singleton(ExceptionHandlerInterface::class, function ($app) {
+            return new ExceptionHandler($app[LoggerInterface::class]);
+        });
+
+        return $this;
+    }
+
+    /**
+     * Bootstrap the router instance.
+     *
+     * @return \Emberfuse\Base\Contracts\ApplicationInterface
+     */
+    public function bootstrapRouter(): ApplicationInterface
     {
         $this->router = new Router($this);
+
+        $this->singleton(RouterInterface::class, function ($app) {
+            return $this->router;
+        });
 
         return $this;
     }
@@ -175,6 +227,31 @@ class Application extends Container implements ApplicationInterface
         });
 
         $this->booted = true;
+    }
+
+    /**
+     * Boot the given service provider.
+     *
+     * @param string
+     *
+     * @return void
+     *
+     * @throws \Emberfuse\Base\Exceptions\InvalidServiceClassException
+     * @throws \BadMethodCallException
+     */
+    protected function bootServices(string $service): void
+    {
+        $service = $this->make($service);
+
+        if (!$service instanceof ServiceInterface) {
+            throw new InvalidServiceClassException();
+        }
+
+        if (method_exists($service, 'boot')) {
+            call_user_func([$service, 'boot']);
+        }
+
+        throw new BadMethodCallException();
     }
 
     /**
@@ -221,5 +298,37 @@ class Application extends Container implements ApplicationInterface
         }
 
         return $this['env'];
+    }
+
+    /**
+     * Get instance of emberfuse routing component.
+     *
+     * @return \Psr\Log\LoggerInterface|null
+     */
+    public function getLogger(): ?LoggerInterface
+    {
+        return $this->make(LoggerInterface::class) ?? null;
+    }
+
+    /**
+     * Get instance of emberfuse routing component.
+     *
+     * @return \Emberfuse\Routing\Contarcts\RouterInterface|null
+     */
+    public function getRouter(): ?RouterInterface
+    {
+        return $this->router;
+    }
+
+    /**
+     * Get application configurations repository.
+     *
+     * @param string $key
+     *
+     * @return array
+     */
+    protected function configurations(string $key): array
+    {
+        return $this['config'];
     }
 }

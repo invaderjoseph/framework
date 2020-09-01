@@ -1,12 +1,11 @@
 <?php
 
-namespace Emberfuse\Base\Bootstrappers;
+namespace Emberfuse\Base\Bootstrap;
 
-use Dotenv\Dotenv;
 use Emberfuse\Base\Contracts\ApplicationInterface;
 use Emberfuse\Base\Contracts\BootstrapperInterface;
 
-class LoadEnvironmentVariables implements BootstrapperInterface
+class LoadConfigurations implements BootstrapperInterface
 {
     /**
      * Bootstrap application.
@@ -17,6 +16,5 @@ class LoadEnvironmentVariables implements BootstrapperInterface
      */
     public function bootstrap(ApplicationInterface $app): void
     {
-        Dotenv::createUnsafeImmutable($app->basePath())->safeLoad();
     }
 }
