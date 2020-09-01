@@ -8,6 +8,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Emberfuse\Base\Contracts\ApplicationInterface;
 use Emberfuse\Base\Bootstrappers\LoadConfigurations;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
+use Emberfuse\Base\Contracts\ExceptionHandlerInterface;
 use Emberfuse\Base\Bootstrappers\LoadEnvironmentVariables;
 
 class Kernel implements HttpKernelInterface
@@ -95,7 +96,7 @@ class Kernel implements HttpKernelInterface
      */
     protected function reportException(Throwable $e)
     {
-        $this->app[ExceptionHandler::class]->report($e);
+        $this->app[ExceptionHandlerInterface::class]->report($e);
     }
 
     /**
@@ -108,6 +109,6 @@ class Kernel implements HttpKernelInterface
      */
     protected function renderException(Request $request, Throwable $e)
     {
-        return $this->app[ExceptionHandler::class]->render($request, $e);
+        return $this->app[ExceptionHandlerInterface::class]->render($request, $e);
     }
 }
