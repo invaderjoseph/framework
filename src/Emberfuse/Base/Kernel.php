@@ -52,7 +52,7 @@ class Kernel implements HttpKernelInterface
             if (false === $catch) {
                 // $this->reportException($e);
 
-                // throw $e;
+                throw $e;
             }
 
             // $response = $this->renderException($request, $e);
@@ -70,7 +70,7 @@ class Kernel implements HttpKernelInterface
      */
     protected function sendRequestThroughRouter(Request $request): Response
     {
-        return $this->app->router->dispatch($request);
+        return $this->app->getRouter()->dispatch($request);
     }
 
     /**
@@ -78,12 +78,12 @@ class Kernel implements HttpKernelInterface
      *
      * @return void
      */
-    protected function bootstrapApplication(): void
+    public function bootstrapApplication(): void
     {
         $this->app->setHasBeenBootstrapped(true);
 
         foreach ($this->bootstrappers as $bootstrapper) {
-            $this->app->make($bootstrappers)->bootstrap();
+            $this->app->make($bootstrapper)->bootstrap($this->app);
         }
     }
 

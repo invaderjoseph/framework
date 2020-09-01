@@ -4,7 +4,7 @@ namespace Emberfuse\Tests\Base;
 
 use Emberfuse\Tests\TestCase;
 use Emberfuse\Base\Application;
-use Emberfuse\Base\Bootstrappers\LoadEnvironmentVariables;
+use Emberfuse\Base\Bootstrap\LoadEnvironmentVariables;
 
 class LoadEnvironmentVariablesTest extends TestCase
 {

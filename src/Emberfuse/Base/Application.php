@@ -2,12 +2,16 @@
 
 namespace Emberfuse\Base;
 
+use BadMethodCallException;
+use Psr\Log\LoggerInterface;
 use Emberfuse\Routing\Router;
 use Emberfuse\Container\Container;
 use Monolog\Logger as MonologLogger;
+use Emberfuse\Base\Contracts\ServiceInterface;
 use Emberfuse\Routing\Contracts\RouterInterface;
 use Emberfuse\Base\Contracts\ApplicationInterface;
 use Emberfuse\Base\Contracts\ExceptionHandlerInterface;
+use Emberfuse\Base\Exceptions\InvalidServiceClassException;
 
 class Application extends Container implements ApplicationInterface
 {
@@ -53,6 +57,20 @@ class Application extends Container implements ApplicationInterface
      * @var \Emberfuse\Routing\Router
      */
     protected $router;
+
+    /**
+     * Instance of LoggerInterface implementation.
+     *
+     * @var \Psr\Log\LoggerInterface
+     */
+    protected $logger;
+
+    /**
+     * All of the registered service providers.
+     *
+     * @var array
+     */
+    protected $services = [];
 
     /**
      * Create new instance of Emberfuse application.
@@ -212,6 +230,31 @@ class Application extends Container implements ApplicationInterface
     }
 
     /**
+     * Boot the given service provider.
+     *
+     * @param string
+     *
+     * @return void
+     *
+     * @throws \Emberfuse\Base\Exceptions\InvalidServiceClassException
+     * @throws \BadMethodCallException
+     */
+    protected function bootServices(string $service): void
+    {
+        $service = $this->make($service);
+
+        if (!$service instanceof ServiceInterface) {
+            throw new InvalidServiceClassException();
+        }
+
+        if (method_exists($service, 'boot')) {
+            call_user_func([$service, 'boot']);
+        }
+
+        throw new BadMethodCallException();
+    }
+
+    /**
      * Determine if the application has booted.
      *
      * @return bool
@@ -255,6 +298,26 @@ class Application extends Container implements ApplicationInterface
         }
 
         return $this['env'];
+    }
+
+    /**
+     * Get instance of emberfuse routing component.
+     *
+     * @return \Psr\Log\LoggerInterface|null
+     */
+    public function getLogger(): ?LoggerInterface
+    {
+        return $this->make(LoggerInterface::class) ?? null;
+    }
+
+    /**
+     * Get instance of emberfuse routing component.
+     *
+     * @return \Emberfuse\Routing\Contarcts\RouterInterface|null
+     */
+    public function getRouter(): ?RouterInterface
+    {
+        return $this->router;
     }
 
     /**

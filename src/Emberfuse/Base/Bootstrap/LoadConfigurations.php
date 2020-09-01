@@ -2,6 +2,7 @@
 
 namespace Emberfuse\Base\Bootstrap;
 
+use Emberfuse\Base\Contracts\ApplicationInterface;
 use Emberfuse\Base\Contracts\BootstrapperInterface;
 
 class LoadConfigurations implements BootstrapperInterface
