@@ -1,6 +1,6 @@
 <?php
 
-namespace Emberfuse\Base\Bootstrappers;
+namespace Emberfuse\Base\Bootstrap;
 
 use Dotenv\Dotenv;
 use Emberfuse\Base\Contracts\ApplicationInterface;

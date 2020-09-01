@@ -1,10 +1,10 @@
 <?php
 
-namespace Emberfuse\Base\Bootstrappers;
+namespace Emberfuse\Base\Bootstrap;
 
 use Emberfuse\Base\Contracts\BootstrapperInterface;
 
-class LoadConfigurations extends BootstrapperInterface
+class LoadConfigurations implements BootstrapperInterface
 {
     /**
      * Bootstrap application.

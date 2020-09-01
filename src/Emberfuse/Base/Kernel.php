@@ -5,11 +5,11 @@ namespace Emberfuse\Base;
 use Throwable;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Emberfuse\Base\Bootstrap\LoadConfigurations;
 use Emberfuse\Base\Contracts\ApplicationInterface;
-use Emberfuse\Base\Bootstrappers\LoadConfigurations;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
+use Emberfuse\Base\Bootstrap\LoadEnvironmentVariables;
 use Emberfuse\Base\Contracts\ExceptionHandlerInterface;
-use Emberfuse\Base\Bootstrappers\LoadEnvironmentVariables;
 
 class Kernel implements HttpKernelInterface
 {
