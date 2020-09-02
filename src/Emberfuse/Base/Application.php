@@ -6,7 +6,6 @@ use BadMethodCallException;
 use Psr\Log\LoggerInterface;
 use Emberfuse\Routing\Router;
 use Emberfuse\Container\Container;
-use Monolog\Logger as MonologLogger;
 use Emberfuse\Base\Contracts\ServiceInterface;
 use Emberfuse\Routing\Contracts\RouterInterface;
 use Emberfuse\Base\Contracts\ApplicationInterface;
@@ -15,6 +14,7 @@ use Emberfuse\Base\Exceptions\InvalidServiceClassException;
 
 class Application extends Container implements ApplicationInterface
 {
+    use Concerns\RegisterLoggingService;
     use Concerns\RegisterErrorHandler;
 
     /**
@@ -174,11 +174,7 @@ class Application extends Container implements ApplicationInterface
      */
     public function bootstrapLogger(): ApplicationInterface
     {
-        $this->singleton(LoggerInterface::class, function ($app) {
-            return new Logger(new MonologLogger($app->environment()));
-        });
-
-        return $this;
+        return $this->registerLoggerService();
     }
 
     /**

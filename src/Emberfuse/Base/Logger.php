@@ -4,6 +4,7 @@ namespace Emberfuse\Base;
 
 use Psr\Log\LoggerInterface;
 use InvalidArgumentException;
+use Monolog\Handler\StreamHandler;
 use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\ErrorLogHandler;
 use Monolog\Logger as MonologLogger;
@@ -204,6 +205,23 @@ class Logger implements LoggerInterface
         }
 
         return $message;
+    }
+
+    /**
+     * Register a file log handler.
+     *
+     * @param string $path
+     * @param string $level
+     *
+     * @return void
+     */
+    public function useFiles(string $path, string $level = 'debug'): void
+    {
+        $this->monolog->pushHandler(
+            $handler = new StreamHandler($path, $this->parseLevel($level))
+        );
+
+        $handler->setFormatter($this->getDefaultFormatter());
     }
 
     /**
