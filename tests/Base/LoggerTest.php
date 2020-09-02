@@ -3,6 +3,7 @@
 namespace Emberfuse\Tests\Base;
 
 use Mockery;
+use Emberfuse\Base\Kernel;
 use Emberfuse\Base\Logger;
 use Psr\Log\LoggerInterface;
 use Emberfuse\Tests\TestCase;
@@ -30,6 +31,12 @@ class LoggerTest extends TestCase
     public function tearDown(): void
     {
         Mockery::close();
+
+        $logFile = __DIR__ . '/fixtures/logs/app.log';
+
+        if (file_exists($logFile)) {
+            unlink($logFile);
+        }
     }
 
     public function testInstantiation()
@@ -52,9 +59,20 @@ class LoggerTest extends TestCase
 
     public function testMethodsPassErrorAdditionsToMonolog()
     {
-        $writer = new Logger($monolog = Mockery::mock(MonologLogger::class));
+        $logger = new Logger($monolog = Mockery::mock(MonologLogger::class));
         $monolog->shouldReceive('error')->once()->with('foo', []);
 
-        $writer->error('foo');
+        $logger->error('foo');
+    }
+
+    public function testWriteLogsToFile()
+    {
+        $app = new Application(__DIR__ . '/fixtures');
+        $kernel = new Kernel($app);
+        $kernel->bootstrapApplication();
+
+        $app->getLogger()->info('Test log');
+
+        $this->assertTrue(file_exists(__DIR__ . '/fixtures/logs/app.log'));
     }
 }
