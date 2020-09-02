@@ -4,7 +4,6 @@ namespace Emberfuse\Base;
 
 use Throwable;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Emberfuse\Base\Contracts\ExceptionHandlerInterface;
 use Symfony\Component\Debug\ExceptionHandler as SymfonyDisplayer;
@@ -45,13 +44,12 @@ class ExceptionHandler implements ExceptionHandlerInterface
     /**
      * Render an exception into an HTTP response.
      *
-     * @param \Symfony\Component\HttpFoundation\Request $request
-     * @param \Throwable                                $e
+     * @param \Throwable $e
      *
      * @return \Symfony\Component\HttpFoundation\Response
      */
-    public function render(Request $request, Throwable $e): Response
+    public function render(Throwable $e): Response
     {
-        return (new SymfonyDisplayer(config('app.debug')))->sendPhpResponse($e);
+        return (new SymfonyDisplayer(getenv('APP_ENV')))->sendPhpResponse($e);
     }
 }

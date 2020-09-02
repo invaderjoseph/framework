@@ -1,24 +1,26 @@
 <?php
 
-namespace Emberfuse\Base\Concerns;
+namespace Emberfuse\Base\Bootstrap;
 
-use Throwable;
-use ErrorException;
-use Emberfuse\Base\Application;
+use Psr\Log\LoggerInterface;
 use Emberfuse\Base\ExceptionHandler;
 use Emberfuse\Base\Contracts\ApplicationInterface;
-use Symfony\Component\ErrorHandler\Error\FatalError;
+use Emberfuse\Base\Contracts\BootstrapperInterface;
 use Emberfuse\Base\Contracts\ExceptionHandlerInterface;
 
-trait RegisterErrorHandler
+class LoadErrorHandler implements BootstrapperInterface
 {
     /**
-     * Set the error handling for the application.
+     * Bootstrap application.
      *
-     * @return \Emberfuse\Base\Contracts\ApplicationInterface
+     * @param \Emberfuse\Base\Contracts\ApplicationInterface
+     *
+     * @return void
      */
-    protected function registerErrorHandling(): ApplicationInterface
+    public function bootstrap(ApplicationInterface $app): void
     {
+        $this->bootstrapExceptionHandler();
+
         error_reporting(-1);
 
         set_error_handler(function ($level, $message, $file = '', $line = 0) {
@@ -34,8 +36,6 @@ trait RegisterErrorHandler
         register_shutdown_function(function () {
             $this->handleShutdown();
         });
-
-        return $this;
     }
 
     /**
@@ -76,22 +76,6 @@ trait RegisterErrorHandler
     }
 
     /**
-     * Send the exception to the handler and return the response.
-     *
-     * @param \Throwable $e
-     *
-     * @return \Symfony\Component\HttpFoundation\Response
-     */
-    protected function sendExceptionToHandler(Throwable $e)
-    {
-        $handler = $this->resolveExceptionHandler();
-
-        $handler->report($e);
-
-        return $handler->render($this->make('request'), $e);
-    }
-
-    /**
      * Handle an uncaught exception instance.
      *
      * @param \Throwable $e
@@ -104,7 +88,7 @@ trait RegisterErrorHandler
 
         $handler->report($e);
 
-        $handler->render($this->make('request'), $e)->send();
+        $handler->render($e)->send();
     }
 
     /**
@@ -119,5 +103,19 @@ trait RegisterErrorHandler
         }
 
         return $this->make(ExceptionHandler::class);
+    }
+
+    /**
+     * Bootstrap the router instance.
+     *
+     * @return \Emberfuse\Base\Contracts\ApplicationInterface
+     */
+    protected function bootstrapExceptionHandler(): ApplicationInterface
+    {
+        $this->singleton(ExceptionHandlerInterface::class, function ($app) {
+            return new ExceptionHandler($app[LoggerInterface::class]);
+        });
+
+        return $this;
     }
 }

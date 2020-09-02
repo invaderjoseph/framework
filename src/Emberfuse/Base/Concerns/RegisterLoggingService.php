@@ -27,7 +27,7 @@ trait RegisterLoggingService
      */
     protected function createLogger(ApplicationInterface $app): LoggerInterface
     {
-        $logger = new Logger(new MonologLogger($app->environment()));
+        $logger = new Logger(new MonologLogger('emberfuse'));
 
         $logger->useFiles($app->basePath('logs/app.log'), 'debug');
 

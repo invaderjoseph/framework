@@ -4,7 +4,6 @@ namespace Emberfuse\Base\Bootstrap;
 
 use Symfony\Component\Yaml\Yaml;
 use Emberfuse\Support\Repository;
-use Symfony\Component\Finder\Finder;
 use Emberfuse\Base\Contracts\ApplicationInterface;
 use Emberfuse\Base\Contracts\BootstrapperInterface;
 use Emberfuse\Support\Contracts\RepositoryInterface;
@@ -24,7 +23,7 @@ class LoadConfigurations implements BootstrapperInterface
 
         $app->instance('config', $config = new Repository($items));
 
-        $this->loadConfigurationFiles($app, $config);
+        $this->loadConfigurationFile($app, $config);
 
         date_default_timezone_set($config['app.timezone'] ?? 'UTC');
 
@@ -39,33 +38,10 @@ class LoadConfigurations implements BootstrapperInterface
      *
      * @return void
      */
-    protected function loadConfigurationFiles(ApplicationInterface $app, RepositoryInterface $config)
+    protected function loadConfigurationFile(ApplicationInterface $app, RepositoryInterface $config)
     {
-        foreach ($this->getConfigurationFiles($app) as $key => $file) {
-            $config->set($key, Yaml::parseFile($file));
+        foreach (Yaml::parseFile($app->basePath('config.yaml')) as $key => $value) {
+            $config->set($key, $value);
         }
-    }
-
-    /**
-     * Get all of the configuration files for the application.
-     *
-     * @param \Emberfuse\Base\Contracts\ApplicationInterface $app
-     *
-     * @return array
-     */
-    protected function getConfigurationFiles(ApplicationInterface $app): array
-    {
-        $files = [];
-
-        $yamlFiles = Finder::create()
-            ->files()
-            ->name('*.yaml')
-            ->in($app->basePath('config'));
-
-        foreach ($yamlFiles as $file) {
-            $files[basename($file->getRealPath(), '.yaml')] = $file->getRealPath();
-        }
-
-        return $files;
     }
 }
