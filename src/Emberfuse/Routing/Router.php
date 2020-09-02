@@ -2,6 +2,7 @@
 
 namespace Emberfuse\Routing;
 
+use Closure;
 use Exception;
 use Emberfuse\Container\Container;
 use Psr\Container\ContainerInterface;
@@ -144,6 +145,18 @@ class Router implements RouterInterface
             ->compile();
 
         return $route;
+    }
+
+    /**
+     * Load router from given call back.
+     *
+     * @param \Closure $callback
+     *
+     * @return void
+     */
+    public function loadRoutes(Closure $callback): void
+    {
+        call_user_func_array($callback, [$this]);
     }
 
     /**
