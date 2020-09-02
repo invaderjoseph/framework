@@ -114,7 +114,7 @@ trait RegisterErrorHandler
      */
     protected function resolveExceptionHandler(): ExceptionHandlerInterface
     {
-        if ($this->bound(ExceptionHandlerInterface::class)) {
+        if ($this->has(ExceptionHandlerInterface::class)) {
             return $this->make(ExceptionHandlerInterface::class);
         }
 

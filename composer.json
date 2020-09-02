@@ -1,7 +1,7 @@
 {
     "name": "emberfuse/framework",
     "type": "project",
-    "description": "A simple PHP micro framework.",
+    "description": "The Emberfuse Framework.",
     "keywords": ["php", "micro", "framework"],
     "authors": [
         {
