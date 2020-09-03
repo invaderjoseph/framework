@@ -3,7 +3,9 @@
 namespace Emberfuse\Base;
 
 use Throwable;
+use Emberfuse\Base\Bootstrap\LoadServices;
 use Symfony\Component\HttpFoundation\Request;
+use Emberfuse\Base\Bootstrap\LoadErrorHandler;
 use Symfony\Component\HttpFoundation\Response;
 use Emberfuse\Base\Bootstrap\LoadConfigurations;
 use Emberfuse\Base\Contracts\ApplicationInterface;
@@ -21,6 +23,8 @@ class Kernel implements HttpKernelInterface
     protected $bootstrappers = [
         LoadEnvironmentVariables::class,
         LoadConfigurations::class,
+        LoadErrorHandler::class,
+        LoadServices::class,
     ];
 
     /**
@@ -39,6 +43,8 @@ class Kernel implements HttpKernelInterface
     public function handle(Request $request, int $type = HttpKernelInterface::MASTER_REQUEST, bool $catch = true)
     {
         $request->headers->set('X-Php-Ob-Level', (string) ob_get_level());
+
+        $request->enableHttpMethodParameterOverride();
 
         $this->app->instance('request', $request);
 

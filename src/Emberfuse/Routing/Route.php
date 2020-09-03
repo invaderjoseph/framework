@@ -2,7 +2,6 @@
 
 namespace Emberfuse\Routing;
 
-use Exception;
 use LogicException;
 use RuntimeException;
 use Emberfuse\Container\Container;
@@ -105,11 +104,7 @@ class Route
     {
         $this->container = $this->container ?: new Container();
 
-        try {
-            return $this->runController($request);
-        } catch (Exception $e) {
-            return new Response($e);
-        }
+        return $this->runController($request);
     }
 
     /**
