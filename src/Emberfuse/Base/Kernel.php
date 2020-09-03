@@ -50,12 +50,12 @@ class Kernel implements HttpKernelInterface
             $response = $this->sendRequestThroughRouter($request);
         } catch (Throwable $e) {
             if (false === $catch) {
-                // $this->reportException($e);
+                $this->reportException($e);
 
                 throw $e;
             }
 
-            // $response = $this->renderException($request, $e);
+            $response = $this->renderException($request, $e);
         }
 
         return $response;
