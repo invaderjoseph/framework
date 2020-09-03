@@ -2,10 +2,13 @@
 
 namespace Emberfuse\Base\Bootstrap;
 
+use Throwable;
+use ErrorException;
 use Psr\Log\LoggerInterface;
 use Emberfuse\Base\ExceptionHandler;
 use Emberfuse\Base\Contracts\ApplicationInterface;
 use Emberfuse\Base\Contracts\BootstrapperInterface;
+use Symfony\Component\ErrorHandler\Error\FatalError;
 use Emberfuse\Base\Contracts\ExceptionHandlerInterface;
 
 class LoadErrorHandler implements BootstrapperInterface
