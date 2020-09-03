@@ -112,7 +112,7 @@ class LoadErrorHandler implements BootstrapperInterface
      */
     protected function bootstrapExceptionHandler(): ApplicationInterface
     {
-        $this->singleton(ExceptionHandlerInterface::class, function ($app) {
+        $this->bind(ExceptionHandlerInterface::class, function ($app) {
             return new ExceptionHandler($app[LoggerInterface::class]);
         });
 
