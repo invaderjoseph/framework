@@ -19,7 +19,7 @@ class LoadErrorHandler implements BootstrapperInterface
      */
     public function bootstrap(ApplicationInterface $app): void
     {
-        $this->bootstrapExceptionHandler();
+        $this->bootstrapExceptionHandler($app);
 
         error_reporting(-1);
 
@@ -106,16 +106,20 @@ class LoadErrorHandler implements BootstrapperInterface
     }
 
     /**
-     * Bootstrap the router instance.
+     * Bootstrap the exception handler instance.
      *
-     * @return \Emberfuse\Base\Contracts\ApplicationInterface
+     * @param \Emberfuse\Base\Contracts\ApplicationInterface
+     *
+     * @return void
      */
-    protected function bootstrapExceptionHandler(): ApplicationInterface
+    protected function bootstrapExceptionHandler(ApplicationInterface $app): void
     {
-        $this->bind(ExceptionHandlerInterface::class, function ($app) {
-            return new ExceptionHandler($app[LoggerInterface::class]);
+        $handler = new ExceptionHandler($app[LoggerInterface::class]);
+
+        $app->bind(ExceptionHandler::class, function ($app) use ($handler) {
+            return $handler;
         });
 
-        return $this;
+        $app->instance(ExceptionHandlerInterface::class, $handler);
     }
 }
