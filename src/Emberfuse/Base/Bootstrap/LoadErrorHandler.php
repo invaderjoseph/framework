@@ -14,6 +14,13 @@ use Emberfuse\Base\Contracts\ExceptionHandlerInterface;
 class LoadErrorHandler implements BootstrapperInterface
 {
     /**
+     * Instance of Emberfuse application.
+     *
+     * @var \Emberfuse\Base\Contracts\ApplicationInterface
+     */
+    protected $app;
+
+    /**
      * Bootstrap application.
      *
      * @param \Emberfuse\Base\Contracts\ApplicationInterface
@@ -22,7 +29,9 @@ class LoadErrorHandler implements BootstrapperInterface
      */
     public function bootstrap(ApplicationInterface $app): void
     {
-        $this->bootstrapExceptionHandler($app);
+        $this->app = $app;
+
+        $this->bootstrapExceptionHandler();
 
         error_reporting(-1);
 
@@ -91,7 +100,7 @@ class LoadErrorHandler implements BootstrapperInterface
 
         $handler->report($e);
 
-        $handler->render($e)->send();
+        $handler->render($this->app->make('request'), $e)->send();
     }
 
     /**
@@ -101,28 +110,26 @@ class LoadErrorHandler implements BootstrapperInterface
      */
     protected function resolveExceptionHandler(): ExceptionHandlerInterface
     {
-        if ($this->has(ExceptionHandlerInterface::class)) {
-            return $this->make(ExceptionHandlerInterface::class);
+        if ($this->app->has(ExceptionHandlerInterface::class)) {
+            return $this->app->make(ExceptionHandlerInterface::class);
         }
 
-        return $this->make(ExceptionHandler::class);
+        return $this->app->make(ExceptionHandler::class);
     }
 
     /**
      * Bootstrap the exception handler instance.
      *
-     * @param \Emberfuse\Base\Contracts\ApplicationInterface
-     *
      * @return void
      */
-    protected function bootstrapExceptionHandler(ApplicationInterface $app): void
+    protected function bootstrapExceptionHandler(): void
     {
-        $handler = new ExceptionHandler($app[LoggerInterface::class]);
+        $handler = new ExceptionHandler($this->app->make(LoggerInterface::class));
 
-        $app->bind(ExceptionHandler::class, function ($app) use ($handler) {
+        $this->app->bind(ExceptionHandler::class, function ($app) use ($handler) {
             return $handler;
         });
 
-        $app->instance(ExceptionHandlerInterface::class, $handler);
+        $this->app->instance(ExceptionHandlerInterface::class, $handler);
     }
 }
