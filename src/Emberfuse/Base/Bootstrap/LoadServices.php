@@ -2,6 +2,7 @@
 
 namespace Emberfuse\Base\Bootstrap;
 
+use Emberfuse\Base\Contracts\ApplicationInterface;
 use Emberfuse\Base\Contracts\BootstrapperInterface;
 
 class LoadServices implements BootstrapperInterface
@@ -15,8 +16,8 @@ class LoadServices implements BootstrapperInterface
      */
     public function bootstrap(ApplicationInterface $app): void
     {
-        foreach ($app['config']->get('services') as $service) {
-            $app->registerService($service);
-        }
+        // foreach ($app['config']->get('services') as $service) {
+        //     $app->registerService($service);
+        // }
     }
 }
