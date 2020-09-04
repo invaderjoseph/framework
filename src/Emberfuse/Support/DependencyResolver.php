@@ -4,7 +4,7 @@ namespace Emberfuse\Support;
 
 use ReflectionParameter;
 use Psr\Container\ContainerInterface;
-use Emberfuse\Support\Exceptions\BindingResolutionException;
+use Emberfuse\Support\Exceptions\DependencyResolutionException;
 
 class DependencyResolver
 {
@@ -56,7 +56,7 @@ class DependencyResolver
      *
      * @return array
      *
-     * @throws \Emberfuse\Support\Exceptions\BindingResolutionException
+     * @throws \Emberfuse\Support\Exceptions\DependencyResolutionException
      */
     protected function resolveDependencies(array $dependencies): array
     {
@@ -89,8 +89,7 @@ class DependencyResolver
     protected function hasParameterOverride($dependency)
     {
         return array_key_exists(
-            $dependency->name,
-            $this->getLastParameterOverride()
+            $dependency->name, $this->getLastParameterOverride()
         );
     }
 
@@ -123,7 +122,7 @@ class DependencyResolver
      *
      * @return mixed
      *
-     * @throws \Emberfuse\Support\Exceptions\BindingResolutionException
+     * @throws \Emberfuse\Support\Exceptions\DependencyResolutionException
      */
     protected function resolvePrimitive(ReflectionParameter $parameter)
     {
@@ -131,7 +130,7 @@ class DependencyResolver
             return $parameter->getDefaultValue();
         }
 
-        throw new BindingResolutionException("[$parameter] is unresolvable.");
+        throw new DependencyResolutionException("[$parameter] is unresolvable.");
     }
 
     /**
@@ -141,13 +140,13 @@ class DependencyResolver
      *
      * @return object
      *
-     * @throws \Emberfuse\Support\Exceptions\BindingResolutionException
+     * @throws \Emberfuse\Support\Exceptions\DependencyResolutionException
      */
     protected function resolveClass(ReflectionParameter $parameter)
     {
         try {
             return $this->container->make($parameter->getClass()->name);
-        } catch (BindingResolutionException $e) {
+        } catch (DependencyResolutionException $e) {
             if ($parameter->isOptional()) {
                 return $parameter->getDefaultValue();
             }

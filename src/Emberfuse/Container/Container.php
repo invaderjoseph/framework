@@ -272,11 +272,9 @@ class Container implements ContainerInterface, ArrayAccess
             return $reflector->newInstance();
         }
 
-        $dependencies = $constructor->getParameters();
-
-        $dependencies = $this->resolveDependencies($dependencies);
-
-        return $reflector->newInstanceArgs($dependencies);
+        return $reflector->newInstanceArgs(
+            $this->resolveDependencies($constructor->getParameters())
+        );
     }
 
     /**
@@ -291,8 +289,7 @@ class Container implements ContainerInterface, ArrayAccess
     protected function resolveDependencies(array $dependencies): array
     {
         return (new DependencyResolver($this))->resolve(
-            $dependencies,
-            ...$this->parameterOverride
+            $dependencies, ...$this->parameterOverride
         );
     }
 
