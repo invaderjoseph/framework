@@ -2,11 +2,13 @@
 
 namespace Emberfuse\Routing;
 
-use Exception;
 use LogicException;
+use ReflectionMethod;
 use RuntimeException;
+use BadMethodCallException;
 use Emberfuse\Container\Container;
 use Psr\Container\ContainerInterface;
+use Emberfuse\Support\DependencyResolver;
 use Symfony\Component\Routing\CompiledRoute;
 use Symfony\Component\HttpFoundation\Request;
 use Emberfuse\Routing\Validators\UriValidator;
@@ -14,7 +16,6 @@ use Symfony\Component\HttpFoundation\Response;
 use Emberfuse\Routing\Validators\HostValidator;
 use Emberfuse\Routing\Contracts\RouterInterface;
 use Emberfuse\Routing\Validators\MethodValidator;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class Route
 {
@@ -105,11 +106,7 @@ class Route
     {
         $this->container = $this->container ?: new Container();
 
-        try {
-            return $this->runController($request);
-        } catch (Exception $e) {
-            return new Response($e);
-        }
+        return $this->runController($request);
     }
 
     /**
@@ -123,14 +120,18 @@ class Route
     {
         $instance = $this->container->make($this->action['controller']);
 
-        if (!method_exists($instance, $this->action['method'])) {
-            throw new NotFoundHttpException();
+        if (!method_exists($instance, $method = $this->action['method'])) {
+            throw new BadMethodCallException("Method named [$method] does not exist on controller.");
         }
 
-        return call_user_func_array(
-            [$instance, $this->action['method']],
+        $reflector = new ReflectionMethod($instance, $method);
+
+        $parameters = $this->getRouteActionDependencyResolver()->resolve(
+            $reflector->getParameters(),
             $this->parametersWithoutNulls()
         );
+
+        return $instance->callAction($method, $parameters);
     }
 
     /**
@@ -354,5 +355,15 @@ class Route
         }
 
         throw new RuntimeException('No route validators found.');
+    }
+
+    /**
+     * Get instance of class method resolver class.
+     *
+     * @return \Emberfuse\Support\DependencyResolver
+     */
+    protected function getRouteActionDependencyResolver(): DependencyResolver
+    {
+        return new DependencyResolver($this->container);
     }
 }

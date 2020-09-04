@@ -9,6 +9,7 @@ use Emberfuse\Container\Container;
 use Emberfuse\Base\Contracts\ServiceInterface;
 use Emberfuse\Routing\Contracts\RouterInterface;
 use Emberfuse\Base\Contracts\ApplicationInterface;
+use Emberfuse\Base\Contracts\ExceptionHandlerInterface;
 
 class Application extends Container implements ApplicationInterface
 {
@@ -158,9 +159,21 @@ class Application extends Container implements ApplicationInterface
      */
     protected function registerBaseServices(): ApplicationInterface
     {
-        $this->registerLoggerService();
+        return $this->registerLoggerService()
+            ->registerExceptionHandler()
+            ->registerRouter();
+    }
 
-        $this->registerRouter();
+    /**
+     * Bootstrap the router instance.
+     *
+     * @return \Emberfuse\Base\Contracts\ApplicationInterface
+     */
+    public function registerExceptionHandler(): ApplicationInterface
+    {
+        $this->singleton(ExceptionHandlerInterface::class, function ($app) {
+            return new ExceptionHandler($app(LoggerInterface::class));
+        });
 
         return $this;
     }
@@ -172,11 +185,7 @@ class Application extends Container implements ApplicationInterface
      */
     public function registerRouter(): ApplicationInterface
     {
-        $this->router = new Router($this);
-
-        $this->singleton(RouterInterface::class, function ($app) {
-            return $this->router;
-        });
+        $this->instance(RouterInterface::class, $this->router = new Router($this));
 
         return $this;
     }
@@ -184,7 +193,7 @@ class Application extends Container implements ApplicationInterface
     /**
      * Boots the registered providers.
      *
-     * @return void|null
+     * @return void
      */
     public function boot(): void
     {

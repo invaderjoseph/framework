@@ -9,7 +9,12 @@ use Emberfuse\Base\Contracts\ApplicationInterface;
 
 trait RegisterLoggingService
 {
-    protected function registerLoggerService()
+    /**
+     * Bootstrap logger component.
+     *
+     * @return \Emberfuse\Base\Contracts\ApplicationInterface
+     */
+    protected function registerLoggerService(): ApplicationInterface
     {
         $this->singleton(LoggerInterface::class, function ($app) {
             return $this->createLogger($app);

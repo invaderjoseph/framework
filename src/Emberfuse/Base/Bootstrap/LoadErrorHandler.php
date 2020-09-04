@@ -2,14 +2,23 @@
 
 namespace Emberfuse\Base\Bootstrap;
 
-use Psr\Log\LoggerInterface;
+use Throwable;
+use ErrorException;
 use Emberfuse\Base\ExceptionHandler;
 use Emberfuse\Base\Contracts\ApplicationInterface;
 use Emberfuse\Base\Contracts\BootstrapperInterface;
+use Symfony\Component\ErrorHandler\Error\FatalError;
 use Emberfuse\Base\Contracts\ExceptionHandlerInterface;
 
 class LoadErrorHandler implements BootstrapperInterface
 {
+    /**
+     * Instance of Emberfuse application.
+     *
+     * @var \Emberfuse\Base\Contracts\ApplicationInterface
+     */
+    protected $app;
+
     /**
      * Bootstrap application.
      *
@@ -19,7 +28,7 @@ class LoadErrorHandler implements BootstrapperInterface
      */
     public function bootstrap(ApplicationInterface $app): void
     {
-        $this->bootstrapExceptionHandler();
+        $this->app = $app;
 
         error_reporting(-1);
 
@@ -88,7 +97,7 @@ class LoadErrorHandler implements BootstrapperInterface
 
         $handler->report($e);
 
-        $handler->render($e)->send();
+        $handler->render($this->app->make('request'), $e)->send();
     }
 
     /**
@@ -98,24 +107,10 @@ class LoadErrorHandler implements BootstrapperInterface
      */
     protected function resolveExceptionHandler(): ExceptionHandlerInterface
     {
-        if ($this->has(ExceptionHandlerInterface::class)) {
-            return $this->make(ExceptionHandlerInterface::class);
+        if ($this->app->has(ExceptionHandlerInterface::class)) {
+            return $this->app->make(ExceptionHandlerInterface::class);
         }
 
-        return $this->make(ExceptionHandler::class);
-    }
-
-    /**
-     * Bootstrap the router instance.
-     *
-     * @return \Emberfuse\Base\Contracts\ApplicationInterface
-     */
-    protected function bootstrapExceptionHandler(): ApplicationInterface
-    {
-        $this->singleton(ExceptionHandlerInterface::class, function ($app) {
-            return new ExceptionHandler($app[LoggerInterface::class]);
-        });
-
-        return $this;
+        return $this->app->make(ExceptionHandler::class);
     }
 }
