@@ -7,7 +7,6 @@ use Exception;
 use ArrayAccess;
 use ReflectionClass;
 use Psr\Container\ContainerInterface;
-use Emberfuse\Support\DependencyResolver;
 use Emberfuse\Container\Exceptions\BindingNotFoundException;
 use Emberfuse\Container\Exceptions\BindingResolutionException;
 
@@ -28,6 +27,13 @@ class Container implements ContainerInterface, ArrayAccess
     protected $bindings = [];
 
     /**
+     * The parameter override stack.
+     *
+     * @var array
+     */
+    protected $parameters = [];
+
+    /**
      * Registered sharable instances of bindings.
      *
      * @var array
@@ -40,13 +46,6 @@ class Container implements ContainerInterface, ArrayAccess
      * @var array
      */
     protected $buildStack = [];
-
-    /**
-     * The parameter override stack.
-     *
-     * @var array
-     */
-    protected $parameterOverride = [];
 
     /**
      * {@inheritdoc}
@@ -190,7 +189,7 @@ class Container implements ContainerInterface, ArrayAccess
             return $this->instances[$abstract];
         }
 
-        $this->parameterOverride[] = $parameters;
+        $this->parameters[] = $parameters;
 
         $concrete = $this->getConcrete($abstract);
 
@@ -204,7 +203,7 @@ class Container implements ContainerInterface, ArrayAccess
             $this->instances[$abstract] = $object;
         }
 
-        array_pop($this->parameterOverride);
+        array_pop($this->parameters);
 
         return $object;
     }
@@ -250,8 +249,8 @@ class Container implements ContainerInterface, ArrayAccess
     public function build($concrete)
     {
         if ($concrete instanceof Closure) {
-            $dependencies = count($this->parameterOverride)
-                ? end($this->parameterOverride) : [];
+            $dependencies = count($this->parameters)
+                ? end($this->parameters) : [];
 
             return call_user_func_array($concrete, [$this, $dependencies]);
         }
@@ -272,9 +271,11 @@ class Container implements ContainerInterface, ArrayAccess
             return $reflector->newInstance();
         }
 
-        return $reflector->newInstanceArgs(
-            $this->resolveDependencies($constructor->getParameters())
+        $dependencies = $this->resolveDependencies(
+            $constructor->getParameters(), ...$this->parameters
         );
+
+        return $reflector->newInstanceArgs($dependencies);
     }
 
     /**
@@ -286,11 +287,11 @@ class Container implements ContainerInterface, ArrayAccess
      *
      * @throws \Emberfuse\Container\Exceptions\BindingResolutionException
      */
-    protected function resolveDependencies(array $dependencies): array
+    public function resolveDependencies(array $dependencies, array $parameterOverride = []): array
     {
-        return (new DependencyResolver($this))->resolve(
-            $dependencies, ...$this->parameterOverride
-        );
+        return (new DependencyResolver($this))
+            ->setParameterOverride($parameterOverride)
+            ->resolve($dependencies);
     }
 
     /**
