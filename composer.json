@@ -11,8 +11,8 @@
         }
     ],
     "support": {
-        "issues": "https://github.com/laravel/framework/issues",
-        "source": "https://github.com/laravel/framework"
+        "issues": "https://github.com/emberfuse/framework/issues",
+        "source": "https://github.com/emberfuse/framework"
     },
     "license": "MIT",
     "require": {
@@ -27,13 +27,13 @@
         "symfony/http-foundation": "^5.1",
         "symfony/http-kernel": "^5.1",
         "symfony/routing": "^5.1",
+        "symfony/var-dumper": "^5.1.2",
         "symfony/yaml": "^5.1",
         "vlucas/phpdotenv": "^5.1"
     },
     "require-dev": {
         "mockery/mockery": "^1.3.1",
-        "phpunit/phpunit": "^9.1",
-        "symfony/var-dumper": "^5.1.2"
+        "phpunit/phpunit": "^9.1"
     },
     "autoload": {
         "psr-4": {
