@@ -38,11 +38,11 @@ class RouterTest extends TestCase
         $this->assertEquals('post bar', $router->dispatch(Request::create('foo/bar', 'POST'))->getContent());
 
         $router = $this->getRouter();
-        $router->get('foo/{bar}', '\Emberfuse\Tests\Routing\Stubs\MockController@show');
+        $router->get('foo/{name}', '\Emberfuse\Tests\Routing\Stubs\MockController@show');
         $this->assertEquals('thavarshan', $router->dispatch(Request::create('foo/thavarshan', 'GET'))->getContent());
 
         $router = $this->getRouter();
-        $router->get('foo/{bar}/{baz?}', '\Emberfuse\Tests\Routing\Stubs\MockController@showWithOptions');
+        $router->get('foo/{name}/{age?}', '\Emberfuse\Tests\Routing\Stubs\MockController@showWithOptions');
         $this->assertEquals('thavarshan25', $router->dispatch(Request::create('foo/thavarshan', 'GET'))->getContent());
 
         $router = $this->getRouter();
@@ -50,16 +50,16 @@ class RouterTest extends TestCase
         $this->assertEquals('thavarshan24SL', $router->dispatch(Request::create('foo/thavarshan/boom/24', 'GET'))->getContent());
 
         $router = $this->getRouter();
-        $router->get('{bar}/{baz?}', '\Emberfuse\Tests\Routing\Stubs\MockController@showParams');
+        $router->get('{name}/{age?}', '\Emberfuse\Tests\Routing\Stubs\MockController@showParams');
         $this->assertEquals('thavarshan25', $router->dispatch(Request::create('thavarshan', 'GET'))->getContent());
 
         $router = $this->getRouter();
-        $router->get('{baz?}', '\Emberfuse\Tests\Routing\Stubs\MockController@showOptionalParams');
+        $router->get('{age?}', '\Emberfuse\Tests\Routing\Stubs\MockController@showOptionalParams');
         $this->assertEquals('25', $router->dispatch(Request::create('/', 'GET'))->getContent());
         $this->assertEquals('30', $router->dispatch(Request::create('30', 'GET'))->getContent());
 
         $router = $this->getRouter();
-        $router->get('{foo?}/{baz?}', '\Emberfuse\Tests\Routing\Stubs\MockController@showTwoOptionalParams');
+        $router->get('{name?}/{age?}', '\Emberfuse\Tests\Routing\Stubs\MockController@showTwoOptionalParams');
         $this->assertEquals('thavarshan25', $router->dispatch(Request::create('/', 'GET'))->getContent());
         $this->assertEquals('navin25', $router->dispatch(Request::create('navin', 'GET'))->getContent());
         $this->assertEquals('navin30', $router->dispatch(Request::create('navin/30', 'GET'))->getContent());
