@@ -6,8 +6,8 @@ use Closure;
 use Exception;
 use ArrayAccess;
 use ReflectionClass;
-use ReflectionParameter;
 use Psr\Container\ContainerInterface;
+use Emberfuse\Support\DependencyResolver;
 use Emberfuse\Container\Exceptions\BindingNotFoundException;
 use Emberfuse\Container\Exceptions\BindingResolutionException;
 
@@ -250,10 +250,10 @@ class Container implements ContainerInterface, ArrayAccess
     public function build($concrete)
     {
         if ($concrete instanceof Closure) {
-            return call_user_func_array(
-                $concrete,
-                [$this, $this->getLastParameterOverride()]
-            );
+            $dependencies = count($this->parameterOverride)
+                ? end($this->parameterOverride) : [];
+
+            return call_user_func_array($concrete, [$this, $dependencies]);
         }
 
         try {
@@ -290,100 +290,10 @@ class Container implements ContainerInterface, ArrayAccess
      */
     protected function resolveDependencies(array $dependencies): array
     {
-        $resolved = [];
-
-        foreach ($dependencies as $dependency) {
-            if ($this->hasParameterOverride($dependency)) {
-                $resolved[] = $this->getParameterOverride($dependency);
-
-                continue;
-            }
-
-            $resolution = is_null($dependency->getClass())
-                ? $this->resolvePrimitive($dependency)
-                : $this->resolveClass($dependency);
-
-            $resolved[] = $resolution;
-        }
-
-        return $resolved;
-    }
-
-    /**
-     * Determine if the given dependency has a parameter override.
-     *
-     * @param \ReflectionParameter $dependency
-     *
-     * @return bool
-     */
-    protected function hasParameterOverride($dependency)
-    {
-        return array_key_exists(
-            $dependency->name,
-            $this->getLastParameterOverride()
+        return (new DependencyResolver($this))->resolve(
+            $dependencies,
+            ...$this->parameterOverride
         );
-    }
-
-    /**
-     * Get a parameter override for a dependency.
-     *
-     * @param \ReflectionParameter $dependency
-     *
-     * @return mixed
-     */
-    protected function getParameterOverride($dependency)
-    {
-        return $this->getLastParameterOverride()[$dependency->name];
-    }
-
-    /**
-     * Get the last parameter override.
-     *
-     * @return array
-     */
-    protected function getLastParameterOverride()
-    {
-        return count($this->parameterOverride) ? end($this->parameterOverride) : [];
-    }
-
-    /**
-     * Resolve a dependency that has a type of primitive.
-     *
-     * @param \ReflectionParameter $parameter
-     *
-     * @return mixed
-     *
-     * @throws \Emberfuse\Container\Exceptions\BindingResolutionException
-     */
-    protected function resolvePrimitive(ReflectionParameter $parameter)
-    {
-        if ($parameter->isDefaultValueAvailable()) {
-            return $parameter->getDefaultValue();
-        }
-
-        throw new BindingResolutionException("[$parameter] is unresolvable.");
-    }
-
-    /**
-     * Resolve a class based dependency.
-     *
-     * @param \ReflectionParameter $parameter
-     *
-     * @return object
-     *
-     * @throws \Emberfuse\Container\Exceptions\BindingResolutionException
-     */
-    protected function resolveClass(ReflectionParameter $parameter)
-    {
-        try {
-            return $this->make($parameter->getClass()->name);
-        } catch (BindingResolutionException $e) {
-            if ($parameter->isOptional()) {
-                return $parameter->getDefaultValue();
-            }
-
-            throw $e;
-        }
     }
 
     /**
