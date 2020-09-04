@@ -42,11 +42,7 @@ class Kernel implements HttpKernelInterface
      */
     public function handle(Request $request, int $type = HttpKernelInterface::MASTER_REQUEST, bool $catch = true)
     {
-        $request->headers->set('X-Php-Ob-Level', (string) ob_get_level());
-
-        $request->enableHttpMethodParameterOverride();
-
-        $this->app->instance('request', $request);
+        $this->processRequest($request);
 
         try {
             $this->bootstrapApplication();
@@ -68,6 +64,22 @@ class Kernel implements HttpKernelInterface
     }
 
     /**
+     * Modify and bind the HTTP request instance to the application.
+     *
+     * @param \Symfony\Component\HttpFoundation\Request $request
+     *
+     * @return void
+     */
+    protected function processRequest(Request $request): void
+    {
+        $request->headers->set('X-Php-Ob-Level', (string) ob_get_level());
+
+        $request->enableHttpMethodParameterOverride();
+
+        $this->app->instance('request', $request);
+    }
+
+    /**
      * Send the given request through the middleware / router.
      *
      * @param \Symfony\Component\HttpFoundation\Request $request
@@ -86,11 +98,11 @@ class Kernel implements HttpKernelInterface
      */
     public function bootstrapApplication(): void
     {
-        $this->app->setHasBeenBootstrapped(true);
-
         foreach ($this->bootstrappers as $bootstrapper) {
             $this->app->make($bootstrapper)->bootstrap($this->app);
         }
+
+        $this->app->setHasBeenBootstrapped(true);
     }
 
     /**

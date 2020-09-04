@@ -4,7 +4,6 @@ namespace Emberfuse\Base\Bootstrap;
 
 use Throwable;
 use ErrorException;
-use Psr\Log\LoggerInterface;
 use Emberfuse\Base\ExceptionHandler;
 use Emberfuse\Base\Contracts\ApplicationInterface;
 use Emberfuse\Base\Contracts\BootstrapperInterface;
@@ -30,8 +29,6 @@ class LoadErrorHandler implements BootstrapperInterface
     public function bootstrap(ApplicationInterface $app): void
     {
         $this->app = $app;
-
-        $this->bootstrapExceptionHandler();
 
         error_reporting(-1);
 
@@ -115,21 +112,5 @@ class LoadErrorHandler implements BootstrapperInterface
         }
 
         return $this->app->make(ExceptionHandler::class);
-    }
-
-    /**
-     * Bootstrap the exception handler instance.
-     *
-     * @return void
-     */
-    protected function bootstrapExceptionHandler(): void
-    {
-        $handler = new ExceptionHandler($this->app->make(LoggerInterface::class));
-
-        $this->app->bind(ExceptionHandler::class, function ($app) use ($handler) {
-            return $handler;
-        });
-
-        $this->app->instance(ExceptionHandlerInterface::class, $handler);
     }
 }
