@@ -1,13 +1,16 @@
 <?php
 
-namespace Emberfuse\Support;
+namespace Emberfuse\Container;
 
 use ReflectionParameter;
 use Psr\Container\ContainerInterface;
-use Emberfuse\Support\Exceptions\BindingResolutionException;
+use Emberfuse\Container\Traits\HasParamaterOverride;
+use Emberfuse\Container\Exceptions\DependencyResolutionException;
 
 class DependencyResolver
 {
+    use HasParamaterOverride;
+
     /**
      * Instance of service container.
      *
@@ -38,27 +41,12 @@ class DependencyResolver
      * Resolve given method/class dependencies.
      *
      * @param array $dependencies
-     * @param array $parameterOverride
-     *
-     * @return array
-     */
-    public function resolve(array $dependencies, array $parameterOverride = [])
-    {
-        $this->parameterOverride[] = $parameterOverride;
-
-        return $this->resolveDependencies($dependencies);
-    }
-
-    /**
-     * Resolve given array of class dependencies.
-     *
-     * @param array $dependencies
      *
      * @return array
      *
-     * @throws \Emberfuse\Support\Exceptions\BindingResolutionException
+     * @throws \Emberfuse\Container\Exceptions\DependencyResolutionException
      */
-    protected function resolveDependencies(array $dependencies): array
+    public function resolve(array $dependencies): array
     {
         $resolved = [];
 
@@ -80,17 +68,70 @@ class DependencyResolver
     }
 
     /**
+     * Resolve a dependency that has a type of primitive.
+     *
+     * @param \ReflectionParameter $parameter
+     *
+     * @return mixed
+     *
+     * @throws \Emberfuse\Container\Exceptions\DependencyResolutionException
+     */
+    protected function resolvePrimitive(ReflectionParameter $parameter)
+    {
+        if ($parameter->isDefaultValueAvailable()) {
+            return $parameter->getDefaultValue();
+        }
+
+        throw new DependencyResolutionException("[$parameter] is unresolvable.");
+    }
+
+    /**
+     * Resolve a class based dependency.
+     *
+     * @param \ReflectionParameter $parameter
+     *
+     * @return object
+     *
+     * @throws \Emberfuse\Container\Exceptions\DependencyResolutionException
+     */
+    protected function resolveClass(ReflectionParameter $parameter): object
+    {
+        try {
+            return $this->container->make($parameter->getClass()->name);
+        } catch (DependencyResolutionException $e) {
+            if ($parameter->isOptional()) {
+                return $parameter->getDefaultValue();
+            }
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Set parameters to override given dependencies.
+     *
+     * @param array $parameters
+     *
+     * @return \Emberfuse\Container\DependencyResolver
+     */
+    public function setParameterOverride(array $parameters = []): DependencyResolver
+    {
+        $this->parameterOverride[] = $parameters;
+
+        return $this;
+    }
+
+    /**
      * Determine if the given dependency has a parameter override.
      *
      * @param \ReflectionParameter $dependency
      *
      * @return bool
      */
-    protected function hasParameterOverride($dependency)
+    protected function hasParameterOverride($dependency): bool
     {
         return array_key_exists(
-            $dependency->name,
-            $this->getLastParameterOverride()
+            $dependency->name, $this->getLastParameterOverride()
         );
     }
 
@@ -111,48 +152,8 @@ class DependencyResolver
      *
      * @return array
      */
-    protected function getLastParameterOverride()
+    protected function getLastParameterOverride(): array
     {
         return count($this->parameterOverride) ? end($this->parameterOverride) : [];
-    }
-
-    /**
-     * Resolve a dependency that has a type of primitive.
-     *
-     * @param \ReflectionParameter $parameter
-     *
-     * @return mixed
-     *
-     * @throws \Emberfuse\Support\Exceptions\BindingResolutionException
-     */
-    protected function resolvePrimitive(ReflectionParameter $parameter)
-    {
-        if ($parameter->isDefaultValueAvailable()) {
-            return $parameter->getDefaultValue();
-        }
-
-        throw new BindingResolutionException("[$parameter] is unresolvable.");
-    }
-
-    /**
-     * Resolve a class based dependency.
-     *
-     * @param \ReflectionParameter $parameter
-     *
-     * @return object
-     *
-     * @throws \Emberfuse\Support\Exceptions\BindingResolutionException
-     */
-    protected function resolveClass(ReflectionParameter $parameter)
-    {
-        try {
-            return $this->container->make($parameter->getClass()->name);
-        } catch (BindingResolutionException $e) {
-            if ($parameter->isOptional()) {
-                return $parameter->getDefaultValue();
-            }
-
-            throw $e;
-        }
     }
 }

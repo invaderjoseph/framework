@@ -8,7 +8,6 @@ use RuntimeException;
 use BadMethodCallException;
 use Emberfuse\Container\Container;
 use Psr\Container\ContainerInterface;
-use Emberfuse\Support\DependencyResolver;
 use Symfony\Component\Routing\CompiledRoute;
 use Symfony\Component\HttpFoundation\Request;
 use Emberfuse\Routing\Validators\UriValidator;
@@ -124,10 +123,8 @@ class Route
             throw new BadMethodCallException("Method named [$method] does not exist on controller.");
         }
 
-        $reflector = new ReflectionMethod($instance, $method);
-
-        $parameters = $this->getRouteActionDependencyResolver()->resolve(
-            $reflector->getParameters(),
+        $parameters = $this->container->resolveDependencies(
+            (new ReflectionMethod($instance, $method))->getParameters(),
             $this->parametersWithoutNulls()
         );
 
@@ -355,15 +352,5 @@ class Route
         }
 
         throw new RuntimeException('No route validators found.');
-    }
-
-    /**
-     * Get instance of class method resolver class.
-     *
-     * @return \Emberfuse\Support\DependencyResolver
-     */
-    protected function getRouteActionDependencyResolver(): DependencyResolver
-    {
-        return new DependencyResolver($this->container);
     }
 }
