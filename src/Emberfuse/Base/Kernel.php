@@ -28,9 +28,11 @@ class Kernel implements HttpKernelInterface
     ];
 
     /**
-     * Create new instance of Http Kernel.
+     * Create new instance of HTTP Kernel.
      *
-     * @param \Emberfuse\Base\Contracts\ApplicationInterface $app [description]
+     * @param \Emberfuse\Base\Contracts\ApplicationInterface $app
+     *
+     * @return void
      */
     public function __construct(ApplicationInterface $app)
     {
@@ -42,7 +44,7 @@ class Kernel implements HttpKernelInterface
      */
     public function handle(Request $request, int $type = HttpKernelInterface::MASTER_REQUEST, bool $catch = true)
     {
-        $this->processRequest($request);
+        $this->bindRequest($request);
 
         try {
             $this->bootstrapApplication();
@@ -51,7 +53,7 @@ class Kernel implements HttpKernelInterface
 
             $response = $this->sendRequestThroughRouter($request);
         } catch (Throwable $e) {
-            if (false === $catch) {
+            if (!$catch) {
                 $this->reportException($e);
 
                 throw $e;
@@ -70,7 +72,7 @@ class Kernel implements HttpKernelInterface
      *
      * @return void
      */
-    protected function processRequest(Request $request): void
+    protected function makeRequest(Request $request): void
     {
         $request->headers->set('X-Php-Ob-Level', (string) ob_get_level());
 
@@ -112,7 +114,7 @@ class Kernel implements HttpKernelInterface
      *
      * @return void
      */
-    protected function reportException(Throwable $e)
+    protected function reportException(Throwable $e): void
     {
         $this->app[ExceptionHandlerInterface::class]->report($e);
     }
@@ -125,7 +127,7 @@ class Kernel implements HttpKernelInterface
      *
      * @return \Symfony\Component\HttpFoundation\Response
      */
-    protected function renderException(Request $request, Throwable $e)
+    protected function renderException(Request $request, Throwable $e): Response
     {
         return $this->app[ExceptionHandlerInterface::class]->render($request, $e);
     }
