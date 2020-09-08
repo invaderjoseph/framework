@@ -15,7 +15,7 @@ class Container implements ContainerInterface, ArrayAccess
     /**
      * The current globally available container (if any).
      *
-     * @var static
+     * @var \Psr\Container\ContainerInterface
      */
     protected static $instance;
 
@@ -85,10 +85,10 @@ class Container implements ContainerInterface, ArrayAccess
     /**
      * Register an existing instance as shared in the container.
      *
-     * @param string                       $abstract
-     * @param object|string|array|int|bool $instance
+     * @param string $abstract
+     * @param mixed  $instance
      *
-     * @return object|string|array|int|bool
+     * @return mixed
      */
     public function instance(string $abstract, $instance)
     {
@@ -116,7 +116,7 @@ class Container implements ContainerInterface, ArrayAccess
             $concrete = $abstract;
         }
 
-        if (!$concrete instanceof Closure) {
+        if (! $concrete instanceof Closure) {
             $concrete = $this->makeClosure($abstract, $concrete);
         }
 
@@ -164,9 +164,9 @@ class Container implements ContainerInterface, ArrayAccess
      * @param string $abstract
      * @param array  $parameters
      *
-     * @return \Object|string|int|array|bool
+     * @return mixed
      *
-     * @throws \Emberfuse\Container\Exception\BindingResolution
+     * @throws \Emberfuse\Container\Exception\BindingResolutionException
      */
     public function make(string $abstract, array $parameters = [])
     {
@@ -179,9 +179,9 @@ class Container implements ContainerInterface, ArrayAccess
      * @param string $abstract
      * @param array  $parameters
      *
-     * @return \Object|string|int|array|bool
+     * @return mixed
      *
-     * @throws \Emberfuse\Container\Exception\BindingResolution
+     * @throws \Emberfuse\Container\Exception\BindingResolutionException
      */
     protected function resolve(string $abstract, array $parameters = [])
     {
@@ -193,11 +193,8 @@ class Container implements ContainerInterface, ArrayAccess
 
         $concrete = $this->getConcrete($abstract);
 
-        if ($this->isBuildable($concrete, $abstract)) {
-            $object = $this->build($concrete);
-        } else {
-            $object = $this->make($concrete);
-        }
+        $object = $this->isBuildable($concrete, $abstract)
+            ? $this->build($concrete) : $this->make($concrete);
 
         if ($this->isShared($abstract)) {
             $this->instances[$abstract] = $object;
@@ -249,8 +246,7 @@ class Container implements ContainerInterface, ArrayAccess
     public function build($concrete)
     {
         if ($concrete instanceof Closure) {
-            $dependencies = count($this->parameters)
-                ? end($this->parameters) : [];
+            $dependencies = count($this->parameters) ? end($this->parameters) : [];
 
             return call_user_func_array($concrete, [$this, $dependencies]);
         }
@@ -261,7 +257,7 @@ class Container implements ContainerInterface, ArrayAccess
             throw new BindingResolutionException("Class [$concrete] does not exist.", 0, $e);
         }
 
-        if (!$reflector->isInstantiable()) {
+        if (! $reflector->isInstantiable()) {
             return $this->notInstantiable($concrete);
         }
 
@@ -272,7 +268,8 @@ class Container implements ContainerInterface, ArrayAccess
         }
 
         $dependencies = $this->resolveDependencies(
-            $constructor->getParameters(), ...$this->parameters
+            $constructor->getParameters(),
+            ...$this->parameters
         );
 
         return $reflector->newInstanceArgs($dependencies);
@@ -313,7 +310,7 @@ class Container implements ContainerInterface, ArrayAccess
      *
      * @return \Psr\Container\ContainerInterface|static
      */
-    public static function getInstance()
+    public static function getInstance(): ContainerInterface
     {
         if (is_null(static::$instance)) {
             static::makeInstance(new static());
@@ -329,7 +326,7 @@ class Container implements ContainerInterface, ArrayAccess
      *
      * @return \Psr\Container\ContainerInterface|null
      */
-    public static function makeInstance(?ContainerInterface $container = null)
+    public static function makeInstance(?ContainerInterface $container = null): ?ContainerInterface
     {
         return static::$instance = $container;
     }
@@ -406,7 +403,7 @@ class Container implements ContainerInterface, ArrayAccess
      *
      * @param string $key
      *
-     * @return object|string|array|int|bool
+     * @return mixed
      */
     public function offsetGet($key)
     {
@@ -416,8 +413,8 @@ class Container implements ContainerInterface, ArrayAccess
     /**
      * Set the value at a given offset.
      *
-     * @param string                       $key
-     * @param object|string|array|int|bool $value
+     * @param string $key
+     * @param mixed  $value
      *
      * @return void
      */
@@ -449,7 +446,7 @@ class Container implements ContainerInterface, ArrayAccess
      *
      * @param string $key
      *
-     * @return object|string|array|int|bool
+     * @return mixed
      */
     public function __get($key)
     {
@@ -459,8 +456,8 @@ class Container implements ContainerInterface, ArrayAccess
     /**
      * Dynamically set container services.
      *
-     * @param string                       $key
-     * @param object|string|array|int|bool $value
+     * @param string $key
+     * @param mixed  $value
      *
      * @return void
      */

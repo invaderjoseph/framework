@@ -3,13 +3,13 @@
 namespace Emberfuse\Routing;
 
 use Closure;
-use Exception;
 use Emberfuse\Container\Container;
 use Psr\Container\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Emberfuse\Routing\Contracts\RouterInterface;
 use Emberfuse\Routing\Contracts\RouteCollectionInterface;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class Router implements RouterInterface
@@ -128,7 +128,7 @@ class Router implements RouterInterface
     }
 
     /**
-     * Create new emberfuse route instance.
+     * Create new Emberfuse route instance.
      *
      * @param string $method
      * @param string $uri
@@ -168,21 +168,9 @@ class Router implements RouterInterface
      */
     public function dispatch(Request $request): Response
     {
-        return $this->dispatchToRoute($request);
-    }
-
-    /**
-     * Dispatch request to route and return response.
-     *
-     * @param \Symfony\Component\HttpFoundation\Request $request
-     *
-     * @return \Symfony\Component\HttpFoundation\Response
-     */
-    protected function dispatchToRoute(Request $request): Response
-    {
         try {
             $route = $this->findRoute($request);
-        } catch (Exception $e) {
+        } catch (RouteNotFoundException $e) {
             throw new NotFoundHttpException();
         }
 
@@ -215,7 +203,7 @@ class Router implements RouterInterface
      */
     protected function prepareResponse($request, $response): Response
     {
-        if (!$response instanceof Response) {
+        if (! $response instanceof Response) {
             $response = new Response($response);
         }
 
