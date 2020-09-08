@@ -44,7 +44,7 @@ class Kernel implements HttpKernelInterface
      */
     public function handle(Request $request, int $type = HttpKernelInterface::MASTER_REQUEST, bool $catch = true)
     {
-        $this->bindRequest($request);
+        $request = $this->makeRequestInstance($request);
 
         try {
             $this->bootstrapApplication();
@@ -53,7 +53,7 @@ class Kernel implements HttpKernelInterface
 
             $response = $this->sendRequestThroughRouter($request);
         } catch (Throwable $e) {
-            if (!$catch) {
+            if (! $catch) {
                 $this->reportException($e);
 
                 throw $e;
@@ -70,15 +70,17 @@ class Kernel implements HttpKernelInterface
      *
      * @param \Symfony\Component\HttpFoundation\Request $request
      *
-     * @return void
+     * @return \Symfony\Component\HttpFoundation\Request
      */
-    protected function makeRequest(Request $request): void
+    protected function makeRequestInstance(Request $request): Request
     {
         $request->headers->set('X-Php-Ob-Level', (string) ob_get_level());
 
         $request->enableHttpMethodParameterOverride();
 
         $this->app->instance('request', $request);
+
+        return $request;
     }
 
     /**

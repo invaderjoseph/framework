@@ -116,7 +116,7 @@ class Container implements ContainerInterface, ArrayAccess
             $concrete = $abstract;
         }
 
-        if (!$concrete instanceof Closure) {
+        if (! $concrete instanceof Closure) {
             $concrete = $this->makeClosure($abstract, $concrete);
         }
 
@@ -193,11 +193,8 @@ class Container implements ContainerInterface, ArrayAccess
 
         $concrete = $this->getConcrete($abstract);
 
-        if ($this->isBuildable($concrete, $abstract)) {
-            $object = $this->build($concrete);
-        } else {
-            $object = $this->make($concrete);
-        }
+        $object = $this->isBuildable($concrete, $abstract)
+            ? $this->build($concrete) : $this->make($concrete);
 
         if ($this->isShared($abstract)) {
             $this->instances[$abstract] = $object;
@@ -249,8 +246,7 @@ class Container implements ContainerInterface, ArrayAccess
     public function build($concrete)
     {
         if ($concrete instanceof Closure) {
-            $dependencies = count($this->parameters)
-                ? end($this->parameters) : [];
+            $dependencies = count($this->parameters) ? end($this->parameters) : [];
 
             return call_user_func_array($concrete, [$this, $dependencies]);
         }
@@ -261,7 +257,7 @@ class Container implements ContainerInterface, ArrayAccess
             throw new BindingResolutionException("Class [$concrete] does not exist.", 0, $e);
         }
 
-        if (!$reflector->isInstantiable()) {
+        if (! $reflector->isInstantiable()) {
             return $this->notInstantiable($concrete);
         }
 
