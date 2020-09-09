@@ -3,6 +3,7 @@
 namespace Emberfuse\Base;
 
 use Throwable;
+use Emberfuse\Support\Pipeline;
 use Emberfuse\Base\Bootstrap\LoadServices;
 use Symfony\Component\HttpFoundation\Request;
 use Emberfuse\Base\Bootstrap\LoadErrorHandler;
@@ -26,6 +27,13 @@ class Kernel implements HttpKernelInterface
         LoadErrorHandler::class,
         LoadServices::class,
     ];
+
+    /**
+     * Application middleware stack.
+     *
+     * @var array
+     */
+    protected $middleware = [];
 
     /**
      * Create new instance of HTTP Kernel.
@@ -92,7 +100,12 @@ class Kernel implements HttpKernelInterface
      */
     protected function sendRequestThroughRouter(Request $request): Response
     {
-        return $this->app->getRouter()->dispatch($request);
+        return (new Pipeline($this->app))
+            ->send($request)
+            ->through($this->middleware)
+            ->then(function ($request) {
+                return $this->app->getRouter()->dispatch($request);
+            });
     }
 
     /**
