@@ -2,7 +2,10 @@
 
 namespace Emberfuse\Tests\Routing\Stubs;
 
+use DateTime;
+use stdClass;
 use Emberfuse\Routing\Controller;
+use Symfony\Component\HttpFoundation\Response;
 
 class MockController extends Controller
 {
@@ -110,6 +113,81 @@ class MockController extends Controller
      */
     public function hello(): string
     {
+        return 'hello';
+    }
+
+    /**
+     * Mock file method.
+     *
+     * @return mixed
+     */
+    public function fileMethod($file)
+    {
+        return $file;
+    }
+
+    /**
+     * Mock patch method.
+     *
+     * @return string
+     */
+    public function patchMethod(): string
+    {
+        return 'bar';
+    }
+
+    /**
+     * Mock overwrite method.
+     *
+     * @return string
+     */
+    public function overwriteMethodFirst(): string
+    {
+        return 'first';
+    }
+
+    /**
+     * Mock overwrite method.
+     *
+     * @return string
+     */
+    public function overwriteMethodSecond(): string
+    {
+        return 'second';
+    }
+
+    /**
+     * Raw URL encode test method.
+     *
+     * @return string
+     */
+    public function urlEncodeMock(): string
+    {
+        return 'hello';
+    }
+
+    /**
+     * Response not modified mock method.
+     *
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
+    public function notModifiedResponseMethod(): Response
+    {
+        return (new Response('test', 304, ['foo' => 'bar']))->setLastModified(new DateTime());
+    }
+
+    /**
+     * Test class injection route action.
+     *
+     * @param stdClass $foo
+     * @param mixed    $var
+     *
+     * @return string
+     */
+    public function mockInjectionMethos(stdClass $foo, $var): string
+    {
+        $_SERVER['__test.route_inject'] = func_get_args();
+
         return 'hello';
     }
 }

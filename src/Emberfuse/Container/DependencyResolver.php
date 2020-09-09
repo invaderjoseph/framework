@@ -128,7 +128,8 @@ class DependencyResolver
     protected function hasParameterOverride(ReflectionParameter $dependency): bool
     {
         return array_key_exists(
-            $dependency->name, $this->getLastParameterOverride()
+            $dependency->name,
+            $this->getLastParameterOverride()
         );
     }
 

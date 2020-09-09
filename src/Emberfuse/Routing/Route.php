@@ -37,7 +37,7 @@ class Route
      *
      * @var string
      */
-    public $action;
+    protected $action;
 
     /**
      * The regular expression requirements.
@@ -119,7 +119,7 @@ class Route
     {
         $instance = $this->container->make($this->action['controller']);
 
-        if (!method_exists($instance, $method = $this->action['method'])) {
+        if (! method_exists($instance, $method = $this->action['method'])) {
             throw new BadMethodCallException("Method named [$method] does not exist on controller.");
         }
 
@@ -147,7 +147,7 @@ class Route
         foreach ($this->getValidators() as $validator) {
             $validator = new $validator();
 
-            if (!$validator->validate($this, $request)) {
+            if (! $validator->validate($this, $request)) {
                 return false;
             }
         }
@@ -189,7 +189,7 @@ class Route
     public function parametersWithoutNulls(): array
     {
         return array_filter($this->parameters(), function ($parameter) {
-            return !is_null($parameter);
+            return ! is_null($parameter);
         });
     }
 
@@ -203,9 +203,7 @@ class Route
     public function parameters(): array
     {
         if (isset($this->parameters)) {
-            return array_map(function ($value) {
-                return is_string($value) ? rawurldecode($value) : $value;
-            }, $this->parameters);
+            return $this->parameters;
         }
 
         throw new LogicException('Route is not bound.');
